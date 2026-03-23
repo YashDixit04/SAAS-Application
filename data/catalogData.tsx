@@ -16,6 +16,9 @@ export interface CatalogProduct {
   category: string;
   publishedOn: string;
   image: string;
+  isExpiring?: boolean;
+  country?: string;
+  port?: string;
 }
 
 // --- Vendors ---
@@ -114,7 +117,7 @@ export const catalogColumns: Column<CatalogProduct>[] = [
 const getImageUrl = (id: number, seed: string) => `https://picsum.photos/seed/${seed}${id}/200/200`;
 
 // --- Mock Data: Marine-based products grouped by vendor ---
-export const catalogTableData: CatalogProduct[] = [
+const baseCatalogTableData: CatalogProduct[] = [
   // SMC Marine Supplies
   {
     id: 1,
@@ -137,6 +140,7 @@ export const catalogTableData: CatalogProduct[] = [
     category: 'Paints',
     publishedOn: '14 Feb, 24',
     image: getImageUrl(2, 'paint'),
+    isExpiring: true,
   },
   {
     id: 3,
@@ -385,3 +389,21 @@ export const catalogTableData: CatalogProduct[] = [
     image: getImageUrl(24, 'resin'),
   },
 ];
+
+const countryPortMap = [
+  { country: 'United States', port: 'Miami' },
+  { country: 'United States', port: 'Houston' },
+  { country: 'United States', port: 'Los Angeles' },
+  { country: 'Singapore', port: 'Singapore Port' },
+  { country: 'Singapore', port: 'Jurong' },
+  { country: 'Netherlands', port: 'Rotterdam' },
+  { country: 'Netherlands', port: 'Amsterdam' },
+  { country: 'United Arab Emirates', port: 'Jebel Ali' },
+  { country: 'United Arab Emirates', port: 'Fujairah' },
+];
+
+export const catalogTableData: CatalogProduct[] = baseCatalogTableData.map((item, index) => ({
+  ...item,
+  country: countryPortMap[index % countryPortMap.length].country,
+  port: countryPortMap[index % countryPortMap.length].port,
+}));

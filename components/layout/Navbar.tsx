@@ -9,9 +9,10 @@ import ProfileDropdown from '../common/ProfileDropdown';
 interface NavbarProps {
   isDarkMode?: boolean;
   toggleTheme?: () => void;
+  onLogout?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () => { } }) => {
+const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () => { }, onLogout }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +96,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
                 isDarkMode={isDarkMode}
                 toggleTheme={toggleTheme}
                 triggerRef={profileRef}
+                onLogout={onLogout}
               />
             </div>
 

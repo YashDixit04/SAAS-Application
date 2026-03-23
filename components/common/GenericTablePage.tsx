@@ -53,57 +53,57 @@ function GenericTablePage<T extends { id: string | number }>({
 
   return (
     <PageLayout breadcrumbItems={breadcrumbItems} actions={actions}>
-      {hasData || data.length > 0 ? (
-        <div className="flex-1 flex flex-col p-6">
-          <div className="flex flex-col gap-4 w-full">
-            {/* Top Toolbar */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              {/* Left: Search and Filter */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="relative w-full sm:w-64">
-                  <Input
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    leftIcon={<Search className="w-4 h-4" />}
-                    className="bg-grey-50 dark:bg-grey-200 border-none"
-                  />
-                </div>
-                {filters ? filters : (
-                  <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
-                    <Filter size={18} />
-                  </Button>
-                )}
+      <div className="flex-1 flex flex-col p-6">
+        <div className="flex flex-col gap-4 w-full h-full">
+          {/* Top Toolbar */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            {/* Left: Search and Filter */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Input
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  leftIcon={<Search className="w-4 h-4" />}
+                  className="bg-grey-50 dark:bg-grey-200 border-none"
+                />
               </div>
-
-              {/* Right: Actions */}
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                {viewToggle}
-                {moreActions}
-
-                {!moreActions && (
-                  <>
-                    <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
-                      <Download size={18} />
-                    </Button>
-
-                    <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
-                      <ArrowUpDown size={18} />
-                    </Button>
-                  </>
-                )}
-
-                {createButtonLabel && (
-                  <Button variant="solid" color="primary" size="small" className="gap-2 ml-2" onClick={onCreateClick}>
-                    <Plus size={18} />
-                    {createButtonLabel}
-                  </Button>
-                )}
-              </div>
+              {filters ? filters : (
+                <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+                  <Filter size={18} />
+                </Button>
+              )}
             </div>
 
-            {/* Content Display: Table or Grid */}
-            {viewMode === 'grid' ? (
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              {viewToggle}
+              {moreActions}
+
+              {!moreActions && (
+                <>
+                  <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+                    <Download size={18} />
+                  </Button>
+
+                  <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+                    <ArrowUpDown size={18} />
+                  </Button>
+                </>
+              )}
+
+              {createButtonLabel && (
+                <Button variant="solid" color="primary" size="small" className="gap-2 ml-2" onClick={onCreateClick}>
+                  <Plus size={18} />
+                  {createButtonLabel}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Content Display: Table or Grid */}
+          {hasData || data.length > 0 ? (
+            viewMode === 'grid' ? (
               renderGrid ? renderGrid(filteredData) : (
                 <DynamicGrid
                   data={filteredData}
@@ -120,19 +120,19 @@ function GenericTablePage<T extends { id: string | number }>({
                 showSearch={false}
                 onRowClick={onRowClick}
               />
-            )}
-          </div>
+            )
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white dark:bg-grey-200 rounded-xl border border-grey-100 dark:border-grey-400 min-h-[400px]">
+              <div className="flex flex-col items-center gap-6 max-w-md text-center">
+                <Heading3 className="text-grey-900 dark:text-white">No Data Found</Heading3>
+                <p className="text-grey-500 dark:text-grey-400">
+                  There are currently no records to display.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center h-full p-8">
-          <div className="flex flex-col items-center gap-6 max-w-md text-center">
-            <Heading3 className="text-grey-900 dark:text-white">No Data Found</Heading3>
-            <p className="text-grey-500 dark:text-grey-400">
-              There are currently no records to display in this section.
-            </p>
-          </div>
-        </div>
-      )}
+      </div>
     </PageLayout>
   );
 }
