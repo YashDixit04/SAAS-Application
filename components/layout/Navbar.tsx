@@ -5,15 +5,20 @@ import Input from '../ui/Input';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
 import ProfileDropdown from '../common/ProfileDropdown';
+import { useCart } from '../../context/CartContext';
+import { canAccessPage } from '../../utils/rbac';
 
 interface NavbarProps {
   isDarkMode?: boolean;
   toggleTheme?: () => void;
+  onLogout?: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () => { } }) => {
+const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () => { }, onLogout, onNavigate }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const { totalItems } = useCart();
 
   const iconButtonClass = 'rounded-full hover:!bg-grey-100 [&_svg]:text-grey-900 [&_svg]:stroke-grey-900 dark:hover:!bg-grey-800 dark:[&_svg]:text-white dark:[&_svg]:stroke-white';
 
@@ -54,13 +59,22 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
             />
 
             {/* Cart */}
-            <Button
-              variant="ghost"
-              color="dark"
-              iconOnly
-              className={`hidden sm:inline-flex ${iconButtonClass}`}
-              leftIcon={<ShoppingCart size={18} strokeWidth={1.8} />}
-            />
+            {canAccessPage('cart') && (
+              <div className="relative cursor-pointer" onClick={() => onNavigate && onNavigate('cart')}>
+                <Button
+                  variant="ghost"
+                  color="dark"
+                  iconOnly
+                  className={`hidden sm:inline-flex ${iconButtonClass}`}
+                  leftIcon={<ShoppingCart size={18} strokeWidth={1.8} />}
+                />
+                {totalItems > 0 && (
+                  <span className="absolute top-[2px] right-[2px] h-[18px] w-[18px] flex items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white border-[2px] border-white dark:border-[#141419]">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Notifications */}
             <div className="relative">
@@ -95,6 +109,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
                 isDarkMode={isDarkMode}
                 toggleTheme={toggleTheme}
                 triggerRef={profileRef}
+                onLogout={onLogout}
               />
             </div>
 

@@ -8,6 +8,7 @@ import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
 import Input from '../ui/Input';
 import Switch from '../ui/Switch';
+import { useAuth, getRoleDisplayName } from '../../utils/rbac';
 
 interface ProfileDropdownProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface ProfileDropdownProps {
   isDarkMode: boolean;
   toggleTheme: () => void;
   triggerRef: React.RefObject<HTMLDivElement>;
+  onLogout?: () => void;
 }
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
@@ -22,9 +24,11 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   onClose,
   isDarkMode,
   toggleTheme,
-  triggerRef
+  triggerRef,
+  onLogout
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,6 +46,13 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose, triggerRef]);
 
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -53,13 +64,16 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       <div className="p-4 pb-3 flex items-center gap-3">
         <Avatar
           src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=256&h=256&auto=format&fit=crop"
-          alt="Sean"
+          alt={user?.username || 'User'}
           size="lg"
           status="online"
         />
-        <div>
-          <h4 className="font-bold leading-tight text-dark">Sean</h4>
-          <p className="text-xs text-grey-500">Online</p>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold leading-tight text-dark truncate">{user?.username || 'User'}</h4>
+          <p className="text-xs text-grey-500 truncate">{user?.email || ''}</p>
+          <p className="text-[10px] text-primary font-medium mt-0.5">
+            {getRoleDisplayName(user?.roleType)}
+          </p>
         </div>
       </div>
 
@@ -112,9 +126,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <MenuItem icon={<HelpCircle size={18} />} label="Help" rightElement={<ExternalLink size={14} />} />
       </div>
 
-      {/* Group 4 */}
+      {/* Group 4 - Logout */}
       <div className="py-2">
-        <MenuItem icon={<LogOut size={18} />} label="Log out" />
+        <MenuItem icon={<LogOut size={18} />} label="Log out" onClick={handleLogout}  />
       </div>
     </div>
   );

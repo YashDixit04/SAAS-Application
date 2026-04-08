@@ -1,0 +1,209 @@
+{
+  "variant": "stepper",
+  "title": "Create New Requisition",
+  "subtitle": "Provide the necessary details to initiate a new requisition request.",
+  "tabs": [
+    {
+      "id": "req_details",
+      "label": "Requisition Details",
+      "fields": [
+        {
+          "id": "requisitionName",
+          "type": "input",
+          "label": "Requisition Name",
+          "placeholder": "Enter the requisition name..",
+          "required": true
+        },
+        {
+          "id": "requisitionType",
+          "type": "select",
+          "label": "Select Requisition Type",
+          "placeholder": "Select requisition type..",
+          "required": true,
+          "options": [
+            {
+              "value": "Fresh",
+              "label": "Fresh"
+            },
+            {
+              "value": "Dry",
+              "label": "Dry"
+            },
+            {
+              "value": "Routine",
+              "label": "Routine"
+            },
+            {
+              "value": "Unscheduled",
+              "label": "Unscheduled"
+            }
+          ]
+        },
+        {
+          "id": "categoryType",
+          "type": "select",
+          "label": "Select Category Type",
+          "placeholder": "Select category type..",
+          "required": true,
+          "options": [
+            {
+              "value": "Engine",
+              "label": "Engine"
+            },
+            {
+              "value": "Deck",
+              "label": "Deck"
+            },
+            {
+              "value": "Provisions",
+              "label": "Provisions"
+            },
+            {
+              "value": "Stores",
+              "label": "Stores"
+            }
+          ]
+        },
+        {
+          "id": "priorityType",
+          "type": "select",
+          "label": "Select Priority Type",
+          "placeholder": "Select priority type..",
+          "required": true,
+          "options": [
+            {
+              "value": "High",
+              "label": "High"
+            },
+            {
+              "value": "Medium",
+              "label": "Medium"
+            },
+            {
+              "value": "Low",
+              "label": "Low"
+            }
+          ]
+        },
+        {
+          "id": "port",
+          "type": "select",
+          "label": "Select Port",
+          "placeholder": "Select port..",
+          "required": true,
+          "options": [
+            {
+              "value": "Miami",
+              "label": "Miami"
+            },
+            {
+              "value": "Singapore",
+              "label": "Singapore"
+            },
+            {
+              "value": "Rotterdam",
+              "label": "Rotterdam"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "user_details",
+      "label": "User Details",
+      "fields": [
+        {
+          "id": "creatorName",
+          "type": "input",
+          "label": "Creator Name",
+          "placeholder": "Enter the creator name..",
+          "required": true
+        },
+        {
+          "id": "creatorRank",
+          "type": "select",
+          "label": "Select Creator Rank",
+          "placeholder": "Select creator rank..",
+          "required": true,
+          "options": [
+            {
+              "value": "Captain",
+              "label": "Captain"
+            },
+            {
+              "value": "Chief Engineer",
+              "label": "Chief Engineer"
+            },
+            {
+              "value": "First Officer",
+              "label": "First Officer"
+            }
+          ]
+        },
+        {
+          "id": "crewMembers",
+          "type": "input",
+          "label": "Number of Crew Members",
+          "placeholder": "Enter number of crew..",
+          "required": true
+        },
+        {
+          "id": "freshDateRange",
+          "type": "daterange",
+          "label": "Select Date Range",
+          "required": false
+        },
+        {
+          "id": "dryDateRange",
+          "type": "daterange",
+          "label": "Select Date Range",
+          "required": false
+        },
+        {
+          "id": "deliveryMode",
+          "type": "select",
+          "label": "Select Delivery Mode",
+          "placeholder": "Select delivery mode..",
+          "required": true,
+          "options": [
+            {
+              "value": "Port",
+              "label": "Port"
+            },
+            {
+              "value": "Ship",
+              "label": "Ship"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "agent_details",
+      "label": "Agent Details",
+      "fields": [
+        {
+          "id": "agentName",
+          "type": "input",
+          "label": "Agent Name",
+          "placeholder": "Enter agent name..",
+          "required": true
+        },
+        {
+          "id": "agentEmail",
+          "type": "input",
+          "label": "Agent Email",
+          "placeholder": "Enter agent email..",
+          "required": true
+        },
+        {
+          "id": "agentPhone",
+          "type": "input",
+          "label": "Agent Phone Number",
+          "placeholder": "Enter agent phone..",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

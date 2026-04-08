@@ -3,6 +3,8 @@ import React from 'react';
 
 interface SidebarProps {
   isDarkMode?: boolean;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 import {
   LayoutGrid,
@@ -14,9 +16,16 @@ import {
   HelpCircle,
   Settings,
   Users,
-  Building2
+  Building2,
+  UserCog,
+  Ship,
+  ShoppingCart,
+  BookOpen,
+  FileText,
+  Activity
 } from 'lucide-react';
 import Tooltip from '../ui/Tooltip';
+import { filterMenuByPermissions, isAdmin } from '../../utils/rbac';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -51,6 +60,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={18} strokeWidth={1.5} /> },
     { id: 'users', label: 'Tenants', icon: <Building2 size={18} strokeWidth={1.5} /> },
     { id: 'platformUsers', label: 'Users', icon: <Users size={18} strokeWidth={1.5} /> },
+    ...(!isAdmin() ? [
+      { id: 'tenantSubUsers', label: 'Sub Users', icon: <Users size={18} strokeWidth={1.5} /> },
+      { id: 'tenantVessels', label: 'Vessels', icon: <Ship size={18} strokeWidth={1.5} /> },
+      { id: 'tenantOrders', label: 'Orders', icon: <ShoppingCart size={18} strokeWidth={1.5} /> },
+      { id: 'tenantCatalogue', label: 'Catalogue', icon: <BookOpen size={18} strokeWidth={1.5} /> },
+      { id: 'tenantDocuments', label: 'Documents', icon: <FileText size={18} strokeWidth={1.5} /> },
+      { id: 'tenantActivityLogs', label: 'Activity Logs', icon: <Activity size={18} strokeWidth={1.5} /> }
+    ] : []),
     { id: 'security', label: 'Security', icon: <ShieldCheck size={18} strokeWidth={1.5} /> },
     { id: 'offers', label: 'Offers', icon: <BadgePercent size={18} strokeWidth={1.5} /> },
     { id: 'finance', label: 'Finance', icon: <Wallet size={18} strokeWidth={1.5} /> },
@@ -58,12 +75,23 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'integrations', label: 'Integrations', icon: <Cpu size={18} strokeWidth={1.5} /> },
   ];
 
+  // Filter menu items based on user permissions
+  const accessibleMenuItems = filterMenuByPermissions(menuItems);
+
+  // Bottom actions
+  const bottomActions = [
+    { id: 'userDetails', label: 'Settings', icon: <Settings size={18} strokeWidth={1.5} /> },
+    { id: 'help', label: 'Help & Support', icon: <HelpCircle size={18} strokeWidth={1.5} /> },
+  ];
+
+  const accessibleBottomActions = filterMenuByPermissions(bottomActions);
+
   return (
     <aside className="hidden md:flex w-16 flex-col items-center py-8 sticky top-[56px] h-[calc(100vh-56px)] bg-grey-50 dark:bg-grey-50 z-20">
 
       {/* Main Navigation */}
       <div className="flex flex-col gap-2 w-full items-center">
-        {menuItems.map((item) => (
+        {accessibleMenuItems.map((item) => (
           <SidebarItem
             key={item.id}
             id={item.id}
@@ -77,18 +105,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
 
       {/* Bottom Actions */}
       <div className="mt-auto flex flex-col gap-2 w-full items-center">
-        <SidebarItem
-          icon={<Settings size={18} strokeWidth={1.5} />}
-          label="Settings"
-          isActive={activeTab === 'userDetails'}
-          onClick={() => onTabChange('userDetails')}
-        />
-        <SidebarItem
-          icon={<HelpCircle size={18} strokeWidth={1.5} />}
-          label="Help & Support"
-          isActive={activeTab === 'help'}
-          onClick={() => onTabChange('help')}
-        />
+        {accessibleBottomActions.map((item) => (
+          <SidebarItem
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            isActive={activeTab === item.id}
+            onClick={() => onTabChange(item.id)}
+          />
+        ))}
       </div>
     </aside>
   );

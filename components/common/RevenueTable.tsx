@@ -1,6 +1,7 @@
 import React from 'react';
 import { Table, Column } from './table/table';
 import { REVENUE_TABLE_DATA, revenueTableColumns } from '@/data/config/RevenueTableConfig';
+import EmptyState from './EmptyState';
 
 interface RevenueTableProps {
   data?: typeof REVENUE_TABLE_DATA;
@@ -15,13 +16,20 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
 }) => {
   return (
     <div className="w-full">
-      <Table
-        title={title}
-        data={data}
-        columns={columns}
-        searchPlaceholder="Search Teams"
-        itemsPerPage={5}
-      />
+      {data && data.length > 0 ? (
+        <Table
+          title={title}
+          data={data}
+          columns={columns}
+          searchPlaceholder="Search Teams"
+          itemsPerPage={5}
+        />
+      ) : (
+        <EmptyState 
+            title="No Revenue Data" 
+            description="There are currently no transactions or revenue data available to display." 
+        />
+      )}
     </div>
   );
 };
