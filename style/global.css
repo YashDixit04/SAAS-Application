@@ -142,20 +142,28 @@
 }
 
 /* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar,
+.custom-scrollbar-thin::-webkit-scrollbar {
   width: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+.custom-scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.custom-scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: var(--grey-300);
   border-radius: 20px;
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+.dark .custom-scrollbar::-webkit-scrollbar-thumb,
+.dark .custom-scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: var(--grey-700);
 }
 
@@ -176,4 +184,26 @@ body {
   background-color: var(--bg-body);
   color: var(--text-body);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Snackbar Animations */
+@keyframes bounceInUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 100%);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -10px);
+  }
+  80% {
+    transform: translate(-50%, 5px);
+  }
+  100% {
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-bounce-in-up {
+  animation: bounceInUp 0.5s cubic-bezier(0.215, 0.610, 0.355, 1.000) forwards;
 }

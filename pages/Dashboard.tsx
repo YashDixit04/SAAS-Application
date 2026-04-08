@@ -9,9 +9,36 @@ import { REVENUE_TABLE_DATA, revenueTableColumns } from '@/data/config/RevenueTa
 import RequisitionStatusChart from '@/components/common/statusChart';
 import PageLayout from '@/components/layout/PageLayout';
 
+import apiClient from '@/lib/apiClient';
+
 const Dashboard: React.FC = () => {
+    const [revenueData, setRevenueData] = React.useState<typeof REVENUE_TABLE_DATA>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
     // Determine dark mode for charts (this is a simple check, in a real app use context)
     const isDarkMode = document.documentElement.classList.contains('dark');
+
+    React.useEffect(() => {
+        // Example: Dynamic API fetch for the dashboard as per the microservice plan
+        const fetchDashboardData = async () => {
+            try {
+                setIsLoading(true);
+                // Call the actual microservice endpoint
+                const data = await apiClient.get<typeof REVENUE_TABLE_DATA>('/dashboard/revenue');
+                // Ensure data is array or fallback to empty array
+                setRevenueData(Array.isArray(data) ? data : []);
+                
+                // Fallback static data used for UI testing previously
+                // setRevenueData(REVENUE_TABLE_DATA);
+            } catch (err) {
+                console.error('Failed to fetch dashboard data:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
     const breadcrumbItems = [
         { label: 'Home', href: '#' },
         { label: 'Dashboard', active: true }
@@ -45,7 +72,7 @@ const Dashboard: React.FC = () => {
                     {/* Primary Chart - Takes ~70% width on large screens */}
                     <div className="w-full xl:w-[70%] flex flex-col gap-6">
                         <SubscriptionRevenueChart isDarkMode={isDarkMode} />
-                        <RevenueTable data={REVENUE_TABLE_DATA} columns={revenueTableColumns} />
+                        <RevenueTable data={revenueData} columns={revenueTableColumns} />
                     </div>
 
                     {/* Side Panel / Secondary Widgets - Takes remaining width */}

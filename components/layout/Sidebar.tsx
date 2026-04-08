@@ -3,6 +3,8 @@ import React from 'react';
 
 interface SidebarProps {
   isDarkMode?: boolean;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 import {
   LayoutGrid,

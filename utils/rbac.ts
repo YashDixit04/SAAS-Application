@@ -208,6 +208,7 @@ export const isValidPage = (pageName: string): boolean => {
     'tenantDocuments',
     'tenantActivityLogs',
     'addAccount',
+    'cart',
   ];
 
   return validPages.includes(pageName);

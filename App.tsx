@@ -16,10 +16,14 @@ import DocumentsPage from './pages/documentsInfo/DocumentsPage';
 import ActivityLogsPage from './pages/TableList/ActivityLogsListViewPage';
 import CataloguePage from './pages/Catalogue/list/CataloguePage';
 import AddProduct from './pages/Catalogue/AddCatalogue/AddProduct';
+import CartPage from './pages/Cart/CartPage';
 import LoginSignup from './pages/Auth/LoginSignup';
 import AddAccountPage from './pages/Details/AddAccountPage';
+import AddTenantPage from './pages/Details/AddTenantPage';
 import { authService } from './services/authService';
 import { canAccessPage, getAccessiblePages } from './utils/rbac';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { CartProvider } from './context/CartContext';
 
 const App: React.FC = () => {
   // Authentication state
@@ -90,6 +94,7 @@ const App: React.FC = () => {
     '/tenant/orders': 'tenantOrders',
     '/tenant/catalogue': 'tenantCatalogue',
     '/tenant/catalogue/add-product': 'addProduct',
+    '/tenant/cart': 'cart',
     '/tenant/documents': 'tenantDocuments',
     '/tenant/activity-logs': 'tenantActivityLogs',
   };
@@ -102,7 +107,7 @@ const App: React.FC = () => {
 
   const knownTabs = [
     'dashboard', 'users', 'platformUsers', 'offers', 'userDetails', 'tenantDetails', 'help',
-    'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue', 'addProduct', 'tenantDocuments', 'tenantActivityLogs', 'addAccount',
+    'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue', 'addProduct', 'cart', 'tenantDocuments', 'tenantActivityLogs', 'addAccount', 'addTenant'
   ];
 
   // Show loading state while checking authentication
@@ -121,56 +126,66 @@ const App: React.FC = () => {
 
   // Main application (authenticated users only)
   return (
-    <div className="h-screen overflow-hidden transition-colors duration-300 font-sans text-body flex flex-col bg-grey-50 dark:bg-grey-50">
-      {/* Top Navigation */}
-      <Navbar isDarkMode={isDarkMode} toggleTheme={toggleTheme} onLogout={handleLogout} />
+    <CartProvider>
+      <div className="h-screen overflow-hidden transition-colors duration-300 font-sans text-body flex flex-col bg-grey-50 dark:bg-grey-50">
+        {/* Top Navigation */}
+        <ErrorBoundary componentName="Navigation Bar">
+          <Navbar isDarkMode={isDarkMode} toggleTheme={toggleTheme} onLogout={handleLogout} onNavigate={handleNavigate} />
+        </ErrorBoundary>
 
-      {/* Main Layout Container */}
-      <div className="flex flex-1 overflow-hidden max-w-[1920px] mx-auto w-full">
-        {/* Left Sidebar */}
-        <Sidebar
-          isDarkMode={isDarkMode}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        {/* Main Layout Container */}
+        <div className="flex flex-1 overflow-hidden max-w-[1920px] mx-auto w-full">
+          {/* Left Sidebar */}
+          <ErrorBoundary componentName="Sidebar Menu">
+            <Sidebar
+              isDarkMode={isDarkMode}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </ErrorBoundary>
 
-        {/* Main Content Area - Render only if user has access */}
-        {activeTab === 'dashboard' && canAccessPage('dashboard') && <Dashboard />}
-        {activeTab === 'users' && canAccessPage('users') && <Tenants onNavigate={handleNavigate} />}
-        {activeTab === 'platformUsers' && canAccessPage('platformUsers') && <Users onNavigate={handleNavigate} />}
-        {activeTab === 'offers' && canAccessPage('offers') && <Offers />}
-        {activeTab === 'userDetails' && canAccessPage('userDetails') && <UserDetails />}
-        {activeTab === 'tenantDetails' && canAccessPage('tenantDetails') && <TenantDetailsView onNavigate={handleNavigate} />}
-        {activeTab === 'help' && canAccessPage('help') && <UiComponentsPage />}
-        {activeTab === 'addAccount' && canAccessPage('addAccount') && <AddAccountPage onNavigate={handleNavigate} />}
+          {/* Main Content Area - Render only if user has access */}
+          <ErrorBoundary componentName={`Page View (${activeTab})`}>
+            {activeTab === 'dashboard' && canAccessPage('dashboard') && <Dashboard />}
+            {activeTab === 'users' && canAccessPage('users') && <Tenants onNavigate={handleNavigate} />}
+            {activeTab === 'platformUsers' && canAccessPage('platformUsers') && <Users onNavigate={handleNavigate} />}
+            {activeTab === 'offers' && canAccessPage('offers') && <Offers />}
+            {activeTab === 'userDetails' && canAccessPage('userDetails') && <UserDetails />}
+            {activeTab === 'tenantDetails' && canAccessPage('tenantDetails') && <TenantDetailsView onNavigate={handleNavigate} />}
+            {activeTab === 'help' && canAccessPage('help') && <UiComponentsPage />}
+            {activeTab === 'addAccount' && canAccessPage('addAccount') && <AddAccountPage onNavigate={handleNavigate} />}
 
-        {/* Tenant Sub Pages */}
-        {activeTab === 'tenantSubUsers' && canAccessPage('tenantSubUsers') && <SubUsersPage />}
-        {activeTab === 'tenantVessels' && canAccessPage('tenantVessels') && <VesselsPage />}
-        {activeTab === 'tenantOrders' && canAccessPage('tenantOrders') && <RequisitionOrdersPage />}
-        {activeTab === 'tenantCatalogue' && canAccessPage('tenantCatalogue') && <CataloguePage onNavigate={handleNavigate} />}
-        {activeTab === 'addProduct' && canAccessPage('addProduct') && <AddProduct onNavigate={handleNavigate} />}
-        {activeTab === 'tenantDocuments' && canAccessPage('tenantDocuments') && <DocumentsPage />}
-        {activeTab === 'tenantActivityLogs' && canAccessPage('tenantActivityLogs') && <ActivityLogsPage />}
+            {/* Tenant Sub Pages */}
+            {activeTab === 'addTenant' && canAccessPage('addTenant') && <AddTenantPage onNavigate={handleNavigate} />}
+            {activeTab === 'tenantSubUsers' && canAccessPage('tenantSubUsers') && <SubUsersPage />}
+            {activeTab === 'tenantVessels' && canAccessPage('tenantVessels') && <VesselsPage />}
+            {activeTab === 'tenantOrders' && canAccessPage('tenantOrders') && <RequisitionOrdersPage />}
+            {activeTab === 'tenantCatalogue' && canAccessPage('tenantCatalogue') && <CataloguePage onNavigate={handleNavigate} />}
+            {activeTab === 'addProduct' && canAccessPage('addProduct') && <AddProduct onNavigate={handleNavigate} />}
+            {activeTab === 'cart' && canAccessPage('cart') && <CartPage onNavigate={handleNavigate} />}
+            {activeTab === 'tenantDocuments' && canAccessPage('tenantDocuments') && <DocumentsPage />}
+            {activeTab === 'tenantActivityLogs' && canAccessPage('tenantActivityLogs') && <ActivityLogsPage />}
 
-        {/* Access Denied or Not Implemented */}
-        {knownTabs.includes(activeTab) && !canAccessPage(activeTab) && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-grey-400 text-lg mb-2">Access Denied</p>
-              <p className="text-grey-500 text-sm">You don't have permission to view this page.</p>
-            </div>
-          </div>
-        )}
+            {/* Access Denied or Not Implemented */}
+            {knownTabs.includes(activeTab) && !canAccessPage(activeTab) && (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-grey-400 text-lg mb-2">Access Denied</p>
+                  <p className="text-grey-500 text-sm">You don't have permission to view this page.</p>
+                </div>
+              </div>
+            )}
 
-        {/* Fallback for other tabs not yet implemented */}
-        {!knownTabs.includes(activeTab) && (
-          <div className="flex-1 flex items-center justify-center text-grey-400">
-            Work in progress
-          </div>
-        )}
+            {/* Fallback for other tabs not yet implemented */}
+            {!knownTabs.includes(activeTab) && (
+              <div className="flex-1 flex items-center justify-center text-grey-400">
+                Work in progress
+              </div>
+            )}
+          </ErrorBoundary>
+        </div>
       </div>
-    </div>
+    </CartProvider>
   );
 };
 

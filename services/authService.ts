@@ -1,294 +1,150 @@
 /**
- * Authentication Service
- * Handles user authentication, session management, and caching
- * Designed to be easily migrated from JSON file storage to MongoDB + Backend APIs
+ * Authentication Service — v2 (Backend-connected)
+ *
+ * Now calls the real NestJS backend at POST /auth/login and POST /auth/refresh.
+ * Session is still stored in localStorage for page-reload persistence.
+ * Token pair (access + refresh) is managed by apiClient.tokenStore.
  */
 
-export interface UserPermissions {
-  pages: string[];
-  fields: {
-    [componentName: string]: string[];
-  };
-}
+import { apiClient, tokenStore, ApiException } from '../lib/apiClient';
 
 export type RoleType = 'superadmin' | 'admin' | 'adminusers' | 'tenantadmin' | 'tenantadmin_subusers';
 
-export interface User {
-  username: string;
-  email: string;
-  password: string;
-  roleType: RoleType;
-  permissions: UserPermissions;
+export interface UserPermissions {
+  pages: string[];
+  fields: { [componentName: string]: string[] };
 }
 
 export interface UserSession {
-  username: string;
+  id: string;
   email: string;
-  roleType: RoleType;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  tenantId: string;
+  roleType: RoleType; // kept for UI backward-compatibility
   permissions: UserPermissions;
   loginTimestamp: number;
 }
 
-// Storage key for session data
-const SESSION_STORAGE_KEY = 'b2b_user_session';
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
 
-/**
- * Authentication Service Class
- * Centralizes all authentication and session management logic
- */
+interface BackendUser {
+  id: string;
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  tenantId: string;
+  roleType: string;
+  permissions: any;
+}
+
+const SESSION_KEY = 'b2b_user_session';
+
 class AuthService {
   /**
-   * Authenticates a user with username/email and password
-   * @param usernameOrEmail - Username or email address
-   * @param password - User password
-   * @returns User session if successful, null otherwise
+   * Login using the real NestJS backend.
+   * Stores access + refresh tokens and creates a session object.
    */
-  async login(usernameOrEmail: string, password: string): Promise<UserSession | null> {
+  async login(emailOrUsername: string, password: string): Promise<UserSession | null> {
     try {
-      // Fetch users from JSON file (will be replaced with API call)
-      const users = await this.fetchUsers();
+      const tokens = await apiClient.post<LoginResponse>('/auth/login', {
+        email: emailOrUsername,
+        password,
+      });
 
-      // Find user by username or email
-      const user = users.find(
-        (u: User) =>
-          (u.username === usernameOrEmail || u.email === usernameOrEmail) &&
-          u.password === password
-      );
+      // Store tokens in localStorage via tokenStore
+      tokenStore.set(tokens.accessToken, tokens.refreshToken);
 
-      if (!user) {
-        return null;
-      }
+      // Fetch the current user's profile with the fresh token
+      const user = await apiClient.get<BackendUser>('/auth/me');
 
-      // Create session object
       const session: UserSession = {
-        username: user.username,
+        id: user.id,
         email: user.email,
-        roleType: user.roleType,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        tenantId: user.tenantId,
+        roleType: user.roleType as RoleType,
         permissions: user.permissions,
         loginTimestamp: Date.now(),
       };
 
-      // Store session in cache
-      this.setSession(session);
-
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       return session;
-    } catch (error) {
-      console.error('Login error:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Registers a new user (admin/superadmin only)
-   * @param user - User data to register
-   * @returns Success status
-   */
-  async signup(user: Omit<User, 'password'> & { password: string }): Promise<boolean> {
-    try {
-      // Fetch existing users
-      const users = await this.fetchUsers();
-
-      // Check if user already exists
-      const existingUser = users.find(
-        (u: User) => u.username === user.username || u.email === user.email
-      );
-
-      if (existingUser) {
-        return false;
+    } catch (err) {
+      if (err instanceof ApiException && err.statusCode === 401) {
+        return null; // Invalid credentials
       }
-
-      // Add new user to list
-      users.push(user);
-
-      // Save updated users list (will be replaced with API call)
-      await this.saveUsers(users);
-
-      return true;
-    } catch (error) {
-      console.error('Signup error:', error);
-      return false;
+      console.error('Login error:', err);
+      throw err;
     }
   }
 
-  /**
-   * Logs out the current user and clears session cache
-   */
   logout(): void {
-    this.clearSession();
+    tokenStore.clear();
+    localStorage.removeItem(SESSION_KEY);
   }
 
-  /**
-   * Gets the current user session from cache
-   * @returns User session or null if not authenticated
-   */
   getSession(): UserSession | null {
     try {
-      const sessionData = localStorage.getItem(SESSION_STORAGE_KEY);
-
-      if (!sessionData) {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const session: UserSession = JSON.parse(raw);
+      if (!session.email || !session.role) {
+        this.logout();
         return null;
       }
-
-      const session: UserSession = JSON.parse(sessionData);
-
-      // Validate session has required fields
-      if (!session.username || !session.roleType || !session.permissions) {
-        this.clearSession();
-        return null;
-      }
-
       return session;
-    } catch (error) {
-      console.error('Error retrieving session:', error);
-      this.clearSession();
+    } catch {
+      this.logout();
       return null;
     }
   }
 
-  /**
-   * Sets the user session in cache
-   * @param session - User session data to store
-   */
-  setSession(session: UserSession): void {
-    try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-    } catch (error) {
-      console.error('Error storing session:', error);
-    }
-  }
-
-  /**
-   * Clears the user session from cache
-   */
-  clearSession(): void {
-    try {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch (error) {
-      console.error('Error clearing session:', error);
-    }
-  }
-
-  /**
-   * Updates permissions for the current session
-   * Used when permissions change during an active session
-   * @param permissions - Updated permissions object
-   */
-  updatePermissions(permissions: UserPermissions): void {
-    const session = this.getSession();
-
-    if (session) {
-      session.permissions = permissions;
-      this.setSession(session);
-    }
-  }
-
-  /**
-   * Checks if user is authenticated
-   * @returns True if user has valid session
-   */
   isAuthenticated(): boolean {
-    return this.getSession() !== null;
+    return this.getSession() !== null && tokenStore.getAccess() !== null;
   }
 
-  /**
-   * Checks if current user has access to a specific page
-   * @param pageName - Name of the page to check
-   * @returns True if user has access
-   */
   hasPageAccess(pageName: string): boolean {
     const session = this.getSession();
-
-    if (!session) {
-      return false;
-    }
-
-    // Superadmin has access to all pages
-    if (session.roleType === 'superadmin') {
-      return true;
-    }
-
-    // Check if page is in user's permissions
+    if (!session) return false;
+    if (session.roleType === 'superadmin') return true;
     return session.permissions.pages.includes(pageName);
   }
 
-  /**
-   * Checks if current user has access to a specific field in a component
-   * @param componentName - Name of the component
-   * @param fieldName - Name of the field
-   * @returns True if user has access
-   */
   hasFieldAccess(componentName: string, fieldName: string): boolean {
     const session = this.getSession();
-
-    if (!session) {
-      return false;
-    }
-
-    // Superadmin has access to all fields
-    if (session.roleType === 'superadmin') {
-      return true;
-    }
-
-    // Check if field is in user's permissions
-    const componentFields = session.permissions.fields[componentName];
-
-    if (!componentFields) {
-      return false;
-    }
-
-    return componentFields.includes(fieldName);
+    if (!session) return false;
+    if (session.roleType === 'superadmin') return true;
+    return session.permissions.fields[componentName]?.includes(fieldName) ?? false;
   }
 
-  /**
-   * Gets all accessible pages for the current user
-   * @returns Array of page names
-   */
   getAccessiblePages(): string[] {
     const session = this.getSession();
-
-    if (!session) {
-      return [];
-    }
-
-    // Superadmin has access to all pages
+    if (!session) return [];
     if (session.roleType === 'superadmin') {
-      return ['dashboard', 'users', 'platformUsers', 'security', 'offers', 'finance', 'actions', 'integrations', 'userDetails', 'tenantDetails', 'help', 'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue', 'addProduct', 'tenantDocuments', 'tenantActivityLogs', 'addAccount'];
+      return [
+        'dashboard', 'users', 'platformUsers', 'security', 'offers', 'finance',
+        'actions', 'integrations', 'userDetails', 'tenantDetails', 'help',
+        'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue',
+        'addProduct', 'tenantDocuments', 'tenantActivityLogs', 'addAccount', 'addTenant', 'cart',
+      ];
     }
-
     return session.permissions.pages;
   }
 
-  /**
-   * Fetches users from JSON file
-   * TODO: Replace with API call when backend is ready
-   * @returns Array of users
-   */
-  private async fetchUsers(): Promise<User[]> {
-    try {
-      const data = await import('../data/usersManagement.json');
-      return (data.users as unknown as User[]) || [];
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Saves users to JSON file
-   * TODO: Replace with API call when backend is ready
-   * @param users - Array of users to save
-   */
-  private async saveUsers(users: User[]): Promise<void> {
-    // This is a placeholder for the actual implementation
-    // In a real application, this would make an API call to save the users
-    // For now, we'll log a warning as direct file writing from browser is not possible
-    console.warn('Cannot directly write to users.json from browser. Use API endpoint when available.');
-
-    // Store in localStorage as temporary solution until backend is ready
-    localStorage.setItem('b2b_users_pending', JSON.stringify({ users }));
-  }
+  // ─── Helpers ───────────────────────────────────────────────────────────────
 }
 
-// Export singleton instance
 export const authService = new AuthService();
 export default authService;

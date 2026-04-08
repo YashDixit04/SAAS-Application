@@ -16,13 +16,38 @@ const Users: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate })
     const [selectedRole, setSelectedRole] = useState<string>('All');
 
     useEffect(() => {
-        // Fetch users from the JSON file
         const fetchUsers = async () => {
             try {
-                const data = await import('@/data/json/users.json');
-                setUsers(data.default || data);
+                setIsLoading(true);
+                const { authService } = await import('@/services/authService');
+                const session = authService.getSession();
+                const { apiClient } = await import('@/lib/apiClient');
+                
+                if (session?.tenantId) {
+                    const data = await apiClient.get<any[]>(`/tenants/${session.tenantId}/users`);
+                    
+                    // Platform Uses: only superadmin, admin, adminusers
+                    const platformRoles = ['superadmin', 'admin', 'adminusers'];
+                    
+                    // Map backend user schema to frontend expected schema
+                    const mappedUsers = data
+                        .filter((u: any) => platformRoles.includes(u.roleType))
+                        .map((u: any) => ({
+                            id: u.id,
+                            name: `${u.firstName} ${u.lastName}`.trim() || u.username || 'Unknown',
+                            email: u.email,
+                            department: u.roleType || 'General',
+                            role: u.roleType,
+                            userType: u.role === 'ADMIN' ? 'Internal' : 'External',
+                            avatar: `https://ui-avatars.com/api/?name=${u.firstName}+${u.lastName}&bg=random`
+                        }));
+                    setUsers(mappedUsers);
+                } else {
+                    setUsers([]);
+                }
             } catch (error) {
                 console.error("Failed to load users data:", error);
+                setUsers([]);
             } finally {
                 setIsLoading(false);
             }

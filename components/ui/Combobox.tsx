@@ -122,14 +122,14 @@ const Combobox: React.FC<ComboboxProps> = ({
   // Base Trigger Styles (Identical to Input.tsx)
   const baseWrapperClasses = `
     group flex items-center w-full transition-all duration-200 border rounded-lg overflow-hidden relative
-    bg-white dark:bg-[#0A0A0D] cursor-pointer select-none
+    bg-light cursor-pointer select-none
   `;
 
   // State Styles
   let stateClasses = 'border-grey-200 dark:border-grey-800 text-grey-900 dark:text-white';
 
   if (isDisabled) {
-      stateClasses = 'bg-grey-50 dark:bg-[#151518] border-grey-200 dark:border-grey-800 opacity-60 cursor-not-allowed text-grey-400 dark:text-grey-600';
+      stateClasses = 'bg-grey-50 border-grey-200 dark:border-grey-800 opacity-60 cursor-not-allowed text-grey-400 dark:text-grey-600';
   } else if (isError) {
       stateClasses = 'border-danger text-danger';
   } else {
@@ -177,7 +177,7 @@ const Combobox: React.FC<ComboboxProps> = ({
   const dropdownContent = (
     <div
       ref={dropdownRef}
-      className="p-1 bg-white dark:bg-[#151518] border border-grey-200 dark:border-grey-800 rounded-lg shadow-lg animate-in fade-in zoom-in-95 duration-100"
+      className="p-1 bg-light dark:bg-grey-50 border border-grey-200 dark:border-grey-800 rounded-lg shadow-lg"
       style={{
         position: 'fixed',
         top: dropdownPosition.top,

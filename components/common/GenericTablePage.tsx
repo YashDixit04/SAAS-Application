@@ -23,6 +23,7 @@ interface GenericTablePageProps<T extends { id: string | number }> {
   renderGrid?: (data: T[]) => React.ReactNode;
   onRowClick?: (row: T) => void;
   onCreateClick?: () => void;
+  customContent?: React.ReactNode;
 }
 
 function GenericTablePage<T extends { id: string | number }>({
@@ -39,6 +40,7 @@ function GenericTablePage<T extends { id: string | number }>({
   itemsPerPage = 7,
   onRowClick,
   onCreateClick,
+  customContent,
 }: GenericTablePageProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -55,6 +57,7 @@ function GenericTablePage<T extends { id: string | number }>({
     <PageLayout breadcrumbItems={breadcrumbItems} actions={actions}>
       <div className="flex-1 flex flex-col p-6">
         <div className="flex flex-col gap-4 w-full h-full">
+          {customContent}
           {/* Top Toolbar */}
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             {/* Left: Search and Filter */}
@@ -69,7 +72,7 @@ function GenericTablePage<T extends { id: string | number }>({
                 />
               </div>
               {filters ? filters : (
-                <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+                <Button variant="outline" className="bg-grey-50 border-none text-grey-500">
                   <Filter size={18} />
                 </Button>
               )}
@@ -82,11 +85,11 @@ function GenericTablePage<T extends { id: string | number }>({
 
               {!moreActions && (
                 <>
-                  <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+                  <Button variant="outline" className="bg-grey-50 border-none text-grey-500">
                     <Download size={18} />
                   </Button>
 
-                  <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+                  <Button variant="outline" className="bg-grey-50 border-none text-grey-500">
                     <ArrowUpDown size={18} />
                   </Button>
                 </>
@@ -122,8 +125,13 @@ function GenericTablePage<T extends { id: string | number }>({
               />
             )
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white dark:bg-grey-200 rounded-xl border border-grey-100 dark:border-grey-400 min-h-[400px]">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white dark:bg-[#0A0A0D] rounded-xl border border-grey-200 dark:border-grey-800 min-h-[400px]">
               <div className="flex flex-col items-center gap-6 max-w-md text-center">
+                <img
+                    src="/nousers.svg"
+                    alt="No Data Found"
+                    className="w-64 h-64 object-contain opacity-80"
+                />
                 <Heading3 className="text-grey-900 dark:text-white">No Data Found</Heading3>
                 <p className="text-grey-500 dark:text-grey-400">
                   There are currently no records to display.
