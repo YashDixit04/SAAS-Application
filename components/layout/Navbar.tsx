@@ -60,7 +60,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
 
             {/* Cart */}
             {canAccessPage('cart') && (
-              <div className="relative cursor-pointer" onClick={() => onNavigate && onNavigate('cart')}>
+              <div className="relative cursor-pointer" onClick={() => onNavigate && onNavigate('/tenant/cart')}>
                 <Button
                   variant="ghost"
                   color="dark"

@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -9,63 +9,164 @@ import Offers from './pages/adminOffers';
 import UserDetails from './pages/Details/ProfilePage';
 import TenantDetailsView from './pages/Details/TenantDetailsViewPage';
 import UiComponentsPage from './pages/UiComponentsPage';
-import SubUsersPage from './pages/TableList/SubUsersListViewPage';
+import SubUsersPage from './pages/TableList/SubUsersListViewPage.tsx';
 import VesselsPage from './pages/TableList/VesselsListViewPage';
 import RequisitionOrdersPage from './pages/TableList/RequisitionOrdersListViewPage';
 import DocumentsPage from './pages/documentsInfo/DocumentsPage';
 import ActivityLogsPage from './pages/TableList/ActivityLogsListViewPage';
 import CataloguePage from './pages/Catalogue/list/CataloguePage';
+import SuperadminCataloguePage from './pages/Catalogue/SuperadminCataloguePage';
 import AddProduct from './pages/Catalogue/AddCatalogue/AddProduct';
 import CartPage from './pages/Cart/CartPage';
 import LoginSignup from './pages/Auth/LoginSignup';
+import VendorRegistrationPage from './pages/Auth/VendorRegistrationPage';
 import AddAccountPage from './pages/Details/AddAccountPage';
+import AddSubUserPage from './pages/Details/AddSubUserPage';
 import AddTenantPage from './pages/Details/AddTenantPage';
+import AddVesselPage from './pages/Details/AddVesselPage';
+import AddVendorPage from './pages/Details/AddVendorPage';
+import VendorDetailsViewPage from './pages/Details/VendorDetailsViewPage';
+import VendorsListViewPage from './pages/TableList/VendorsListViewPage';
 import { authService } from './services/authService';
 import { canAccessPage, getAccessiblePages } from './utils/rbac';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { CartProvider } from './context/CartContext';
+import {
+  extractTenantIdFromPath,
+  extractVendorIdFromPath,
+  getAccessPageForLegacyTab,
+  getDefaultPathForAccessPages,
+  initializeRoutingManifest,
+  pathToLegacyTab,
+  resolveNavigationTarget,
+} from './lib/appRouting.ts';
+
+const KNOWN_TABS = [
+  'dashboard',
+  'users',
+  'platformUsers',
+  'superadminCatalogue',
+  'security',
+  'offers',
+  'finance',
+  'actions',
+  'integrations',
+  'userDetails',
+  'tenantDetails',
+  'help',
+  'tenantSubUsers',
+  'tenantVendors',
+  'tenantVessels',
+  'tenantOrders',
+  'tenantCatalogue',
+  'addProduct',
+  'cart',
+  'tenantDocuments',
+  'tenantActivityLogs',
+  'addAccount',
+  'addTenant',
+  'addSubUser',
+  'addVendor',
+  'addVessel',
+];
+
+const IMPLEMENTED_TABS = new Set([
+  'dashboard',
+  'users',
+  'platformUsers',
+  'superadminCatalogue',
+  'offers',
+  'userDetails',
+  'tenantDetails',
+  'help',
+  'tenantSubUsers',
+  'tenantVendors',
+  'tenantVessels',
+  'tenantOrders',
+  'tenantCatalogue',
+  'addProduct',
+  'cart',
+  'tenantDocuments',
+  'tenantActivityLogs',
+  'addAccount',
+  'addTenant',
+  'addSubUser',
+  'addVendor',
+  'addVessel',
+]);
 
 const App: React.FC = () => {
-  // Authentication state
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthChecked, setIsAuthChecked] = useState<boolean>(false);
-
-  // Theme management logic
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
 
-  // Check authentication status on mount
+  const session = authService.getSession();
+  const activeTab = useMemo(
+    () => pathToLegacyTab(location.pathname, session?.tenantId),
+    [location.pathname, session?.tenantId],
+  );
+  const tabBase = activeTab.split('_')[0];
+  const tabParam = activeTab.split('_')[1];
+  const routeTenantId = extractTenantIdFromPath(location.pathname);
+  const routeVendorId = extractVendorIdFromPath(location.pathname, session?.tenantId);
+  const navigationTenantId = tabParam || routeTenantId || session?.tenantId || '';
+
   useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = authService.isAuthenticated();
-      setIsAuthenticated(authenticated);
-      setIsAuthChecked(true);
+    const authenticated = authService.isAuthenticated();
+    setIsAuthenticated(authenticated);
+    setIsAuthChecked(true);
 
-      // If authenticated, check if current tab is accessible
-      if (authenticated) {
-        const accessiblePages = getAccessiblePages();
-        if (!canAccessPage(activeTab) && accessiblePages.length > 0) {
-          // Redirect to first accessible page
-          setActiveTab(accessiblePages[0]);
-        }
-      }
-    };
-
-    checkAuth();
+    if (authenticated) {
+      void initializeRoutingManifest();
+    }
   }, []);
+
+  useEffect(() => {
+    if (!isAuthChecked || !isAuthenticated) {
+      return;
+    }
+
+    const accessiblePages = getAccessiblePages();
+    const defaultPath = getDefaultPathForAccessPages(accessiblePages, session?.tenantId);
+
+    if (location.pathname === '/') {
+      navigate(defaultPath, { replace: true });
+      return;
+    }
+
+    const accessPage = getAccessPageForLegacyTab(activeTab);
+    if (accessPage && !canAccessPage(accessPage) && accessiblePages.length > 0) {
+      if (location.pathname !== defaultPath) {
+        navigate(defaultPath, { replace: true });
+      }
+    }
+  }, [
+    isAuthChecked,
+    isAuthenticated,
+    location.pathname,
+    activeTab,
+    navigate,
+    session?.tenantId,
+  ]);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
-    const accessiblePages = getAccessiblePages();
-    if (accessiblePages.length > 0) {
-      setActiveTab(accessiblePages[0]);
-    }
+    void initializeRoutingManifest();
+    const loggedInSession = authService.getSession();
+    const defaultPath = getDefaultPathForAccessPages(
+      getAccessiblePages(),
+      loggedInSession?.tenantId,
+    );
+    navigate(defaultPath, { replace: true });
   };
 
   const handleLogout = () => {
     authService.logout();
     setIsAuthenticated(false);
-    setActiveTab('dashboard');
+    navigate('/dashboard', { replace: true });
   };
 
   useEffect(() => {
@@ -77,7 +178,6 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // Toggle logic
   const toggleTheme = () => {
     const root = window.document.documentElement;
     root.classList.add('no-transitions');
@@ -87,30 +187,19 @@ const App: React.FC = () => {
     }, 0);
   };
 
-  // Map redirectUrl paths to tab IDs
-  const redirectUrlToTab: Record<string, string> = {
-    '/tenant/sub-users': 'tenantSubUsers',
-    '/tenant/vessels': 'tenantVessels',
-    '/tenant/orders': 'tenantOrders',
-    '/tenant/catalogue': 'tenantCatalogue',
-    '/tenant/catalogue/add-product': 'addProduct',
-    '/tenant/cart': 'cart',
-    '/tenant/documents': 'tenantDocuments',
-    '/tenant/activity-logs': 'tenantActivityLogs',
-  };
-
   const handleNavigate = (tabOrUrl: string) => {
-    // If it's a redirect URL path, convert to tab ID
-    const tabId = redirectUrlToTab[tabOrUrl] || tabOrUrl;
-    setActiveTab(tabId);
+    const nextPath = resolveNavigationTarget(tabOrUrl, {
+      sessionTenantId: session?.tenantId,
+      currentTenantId: navigationTenantId,
+    });
+
+    if (nextPath !== location.pathname) {
+      navigate(nextPath);
+    }
   };
 
-  const knownTabs = [
-    'dashboard', 'users', 'platformUsers', 'offers', 'userDetails', 'tenantDetails', 'help',
-    'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue', 'addProduct', 'cart', 'tenantDocuments', 'tenantActivityLogs', 'addAccount', 'addTenant'
-  ];
+  const accessTab = getAccessPageForLegacyTab(activeTab);
 
-  // Show loading state while checking authentication
   if (!isAuthChecked) {
     return (
       <div className="h-screen flex items-center justify-center bg-grey-50 dark:bg-grey-50">
@@ -119,55 +208,108 @@ const App: React.FC = () => {
     );
   }
 
-  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <LoginSignup onLoginSuccess={handleLoginSuccess} />;
+    if (location.pathname === '/vendor-register') {
+      return (
+        <VendorRegistrationPage
+          onBackToLogin={() => navigate('/', { replace: true })}
+        />
+      );
+    }
+
+    return (
+      <LoginSignup
+        onLoginSuccess={handleLoginSuccess}
+        onRegisterVendor={() => navigate('/vendor-register')}
+      />
+    );
   }
 
-  // Main application (authenticated users only)
   return (
     <CartProvider>
       <div className="h-screen overflow-hidden transition-colors duration-300 font-sans text-body flex flex-col bg-grey-50 dark:bg-grey-50">
-        {/* Top Navigation */}
         <ErrorBoundary componentName="Navigation Bar">
-          <Navbar isDarkMode={isDarkMode} toggleTheme={toggleTheme} onLogout={handleLogout} onNavigate={handleNavigate} />
+          <Navbar
+            isDarkMode={isDarkMode}
+            toggleTheme={toggleTheme}
+            onLogout={handleLogout}
+            onNavigate={handleNavigate}
+          />
         </ErrorBoundary>
 
-        {/* Main Layout Container */}
         <div className="flex flex-1 overflow-hidden max-w-[1920px] mx-auto w-full">
-          {/* Left Sidebar */}
           <ErrorBoundary componentName="Sidebar Menu">
             <Sidebar
               isDarkMode={isDarkMode}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
+              activeTab={tabBase}
+              onTabChange={handleNavigate}
             />
           </ErrorBoundary>
 
-          {/* Main Content Area - Render only if user has access */}
-          <ErrorBoundary componentName={`Page View (${activeTab})`}>
-            {activeTab === 'dashboard' && canAccessPage('dashboard') && <Dashboard />}
-            {activeTab === 'users' && canAccessPage('users') && <Tenants onNavigate={handleNavigate} />}
-            {activeTab === 'platformUsers' && canAccessPage('platformUsers') && <Users onNavigate={handleNavigate} />}
-            {activeTab === 'offers' && canAccessPage('offers') && <Offers />}
-            {activeTab === 'userDetails' && canAccessPage('userDetails') && <UserDetails />}
-            {activeTab === 'tenantDetails' && canAccessPage('tenantDetails') && <TenantDetailsView onNavigate={handleNavigate} />}
-            {activeTab === 'help' && canAccessPage('help') && <UiComponentsPage />}
-            {activeTab === 'addAccount' && canAccessPage('addAccount') && <AddAccountPage onNavigate={handleNavigate} />}
+          <ErrorBoundary componentName={`Page View (${location.pathname})`}>
+            {tabBase === 'dashboard' && canAccessPage('dashboard') && <Dashboard />}
+            {tabBase === 'users' && canAccessPage('users') && <Tenants onNavigate={handleNavigate} />}
+            {tabBase === 'platformUsers' && canAccessPage('platformUsers') && <Users onNavigate={handleNavigate} />}
+            {tabBase === 'superadminCatalogue' && canAccessPage('superadminCatalogue') && (
+              <SuperadminCataloguePage />
+            )}
+            {tabBase === 'offers' && canAccessPage('offers') && <Offers />}
+            {tabBase === 'userDetails' && canAccessPage('userDetails') && <UserDetails />}
+            {tabBase === 'tenantDetails' && canAccessPage('tenantDetails') && (
+              <TenantDetailsView onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
+            {tabBase === 'help' && canAccessPage('help') && <UiComponentsPage />}
+            {tabBase === 'addAccount' && canAccessPage('addAccount') && (
+              <AddAccountPage onNavigate={handleNavigate} />
+            )}
+            {tabBase === 'addSubUser' && canAccessPage('tenantSubUsers') && (
+              <AddSubUserPage onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
 
-            {/* Tenant Sub Pages */}
-            {activeTab === 'addTenant' && canAccessPage('addTenant') && <AddTenantPage onNavigate={handleNavigate} />}
-            {activeTab === 'tenantSubUsers' && canAccessPage('tenantSubUsers') && <SubUsersPage />}
-            {activeTab === 'tenantVessels' && canAccessPage('tenantVessels') && <VesselsPage />}
-            {activeTab === 'tenantOrders' && canAccessPage('tenantOrders') && <RequisitionOrdersPage />}
-            {activeTab === 'tenantCatalogue' && canAccessPage('tenantCatalogue') && <CataloguePage onNavigate={handleNavigate} />}
-            {activeTab === 'addProduct' && canAccessPage('addProduct') && <AddProduct onNavigate={handleNavigate} />}
-            {activeTab === 'cart' && canAccessPage('cart') && <CartPage onNavigate={handleNavigate} />}
-            {activeTab === 'tenantDocuments' && canAccessPage('tenantDocuments') && <DocumentsPage />}
-            {activeTab === 'tenantActivityLogs' && canAccessPage('tenantActivityLogs') && <ActivityLogsPage />}
+            {tabBase === 'addVendor' && canAccessPage('tenantVendors') && (
+              <AddVendorPage onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
 
-            {/* Access Denied or Not Implemented */}
-            {knownTabs.includes(activeTab) && !canAccessPage(activeTab) && (
+            {tabBase === 'addVessel' && canAccessPage('tenantVessels') && (
+              <AddVesselPage onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
+
+            {tabBase === 'addTenant' && canAccessPage('addTenant') && (
+              <AddTenantPage onNavigate={handleNavigate} />
+            )}
+            {tabBase === 'tenantSubUsers' && canAccessPage('tenantSubUsers') && (
+              <SubUsersPage onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
+            {tabBase === 'tenantVendors' && canAccessPage('tenantVendors') && (
+              routeVendorId ? (
+                <VendorDetailsViewPage
+                  tenantId={tabParam}
+                  vendorId={routeVendorId}
+                  onNavigate={handleNavigate}
+                />
+              ) : (
+                <VendorsListViewPage tenantId={tabParam} onNavigate={handleNavigate} />
+              )
+            )}
+            {tabBase === 'tenantVessels' && canAccessPage('tenantVessels') && (
+              <VesselsPage tenantId={tabParam} onNavigate={handleNavigate} />
+            )}
+            {tabBase === 'tenantOrders' && canAccessPage('tenantOrders') && <RequisitionOrdersPage />}
+            {tabBase === 'tenantCatalogue' && canAccessPage('tenantCatalogue') && (
+              <CataloguePage onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
+            {tabBase === 'addProduct' && canAccessPage('addProduct') && (
+              <AddProduct onNavigate={handleNavigate} tenantId={tabParam} />
+            )}
+            {tabBase === 'cart' && canAccessPage('cart') && <CartPage onNavigate={handleNavigate} />}
+            {tabBase === 'tenantDocuments' && canAccessPage('tenantDocuments') && (
+              <DocumentsPage tenantId={tabParam} />
+            )}
+            {tabBase === 'tenantActivityLogs' && canAccessPage('tenantActivityLogs') && (
+              <ActivityLogsPage tenantId={tabParam} />
+            )}
+
+            {KNOWN_TABS.includes(tabBase) && accessTab && !canAccessPage(accessTab) && (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-grey-400 text-lg mb-2">Access Denied</p>
@@ -176,8 +318,13 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* Fallback for other tabs not yet implemented */}
-            {!knownTabs.includes(activeTab) && (
+            {KNOWN_TABS.includes(tabBase) && accessTab && canAccessPage(accessTab) && !IMPLEMENTED_TABS.has(tabBase) && (
+              <div className="flex-1 flex items-center justify-center text-grey-400">
+                Work in progress
+              </div>
+            )}
+
+            {!KNOWN_TABS.includes(tabBase) && (
               <div className="flex-1 flex items-center justify-center text-grey-400">
                 Work in progress
               </div>

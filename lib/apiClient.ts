@@ -44,14 +44,12 @@ export interface ApiError {
   timestamp: string;
   path: string;
   error: string;
-  prismaCode?: string;
 }
 
 export class ApiException extends Error {
   constructor(
     public readonly statusCode: number,
     public readonly errorMessage: string,
-    public readonly prismaCode?: string,
   ) {
     super(errorMessage);
     this.name = 'ApiException';
@@ -119,7 +117,6 @@ async function request<T>(
     throw new ApiException(
       errBody.statusCode ?? res.status,
       errBody.error ?? 'An unexpected error occurred',
-      errBody.prismaCode,
     );
   }
 

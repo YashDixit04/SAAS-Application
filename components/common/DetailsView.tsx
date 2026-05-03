@@ -13,7 +13,7 @@ import {
     TimelineConnector,
     TimelineContent,
 } from '@/components/ui/Timeline';
-import { User, Settings, Shield, Bell, Key, Database, Zap, MapPin, Users, Ship, ShoppingCart, FileText, Clock, ChevronRight, Package } from 'lucide-react';
+import { User, Settings, Shield, Bell, Key, Database, Zap, MapPin, Users, Ship, ShoppingCart, FileText, Clock, ChevronRight, Package, Briefcase } from 'lucide-react';
 import { BreadcrumbLink } from '../common/Breadcrub/dynamicbreadcrub';
 import { QuickLinkSection } from '@/data/tenantDetailsData';
 import Button from '../ui/Button';
@@ -31,6 +31,7 @@ const quickLinkIconMap: Record<string, React.FC<{ size?: number; className?: str
     'ship': Ship,
     'shopping-cart': ShoppingCart,
     'package': Package,
+    'briefcase': Briefcase,
     'file': FileText,
     'clock': Clock,
 };
@@ -44,6 +45,10 @@ interface DetailsViewProps {
     isEditMode?: boolean;
     quickLinks?: QuickLinkSection[];
     onQuickLinkClick?: (redirectUrl: string) => void;
+    onChange?: (data: DetailsViewData) => void;
+    showSectionSaveButtons?: boolean;
+    fieldErrors?: Record<string, string>;
+    onFieldInteraction?: (fieldPath: string) => void;
 }
 
 const DetailsView: React.FC<DetailsViewProps> = ({
@@ -55,9 +60,14 @@ const DetailsView: React.FC<DetailsViewProps> = ({
     isEditMode = true,
     quickLinks,
     onQuickLinkClick,
+    onChange,
+    showSectionSaveButtons = true,
+    fieldErrors,
+    onFieldInteraction,
 }) => {
     const [viewData, setViewData] = useState<DetailsViewData>(data);
     const [activeSection, setActiveSection] = useState<string>('');
+    const skipNextOnChangeSync = useRef(true);
 
     // Ref for the scrollable container (PageLayout)
     const scrollContainerRef = useRef<HTMLElement>(null);
@@ -70,7 +80,20 @@ const DetailsView: React.FC<DetailsViewProps> = ({
     // Sync state when data prop changes
     useEffect(() => {
         setViewData(data);
+        skipNextOnChangeSync.current = true;
     }, [data]);
+
+    // Propagate data changes after render to avoid setState warnings in parent components.
+    useEffect(() => {
+        if (!onChange) return;
+
+        if (skipNextOnChangeSync.current) {
+            skipNextOnChangeSync.current = false;
+            return;
+        }
+
+        onChange(viewData);
+    }, [viewData, onChange]);
 
     // Initialize active section
     useEffect(() => {
@@ -90,16 +113,29 @@ const DetailsView: React.FC<DetailsViewProps> = ({
             const parentData = prev[parent as keyof DetailsViewData] as any;
             const sectionData = parentData[section];
 
-            return {
+            // BUSINESS LOGIC: Country to Currency & Timezone
+            let newSectionData = { ...sectionData, [field]: value };
+            if (field === 'country' && section === 'tenantInformation') {
+                newSectionData.currency = value === 'United States' ? 'USD' : 
+                                        value === 'United Kingdom' ? 'GBP' : 
+                                        value === 'India' ? 'INR' : 
+                                        value === 'Europe' ? 'EUR' : 'USD'; // Default
+                                        
+                newSectionData.timezone = value === 'United States' ? 'UTC -5' : 
+                                        value === 'United Kingdom' ? 'UTC +0' : 
+                                        value === 'India' ? 'UTC +5:30' : 
+                                        value === 'Europe' ? 'UTC +1' : 'UTC'; // Default
+            }
+
+            const newData = {
                 ...prev,
                 [parent]: {
                     ...parentData,
-                    [section]: {
-                        ...sectionData,
-                        [field]: value
-                    }
+                    [section]: newSectionData
                 }
             };
+
+            return newData;
         });
     };
 
@@ -309,6 +345,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                                         onInputChange={handleInputChange}
                                         setRef={(el) => (sectionRefs.current[key] = el)}
                                         isEditMode={isEditMode}
+                                        showSaveButton={showSectionSaveButtons}
+                                        fieldErrors={fieldErrors}
+                                        onFieldInteraction={onFieldInteraction}
                                     />
                                 ))}
 
@@ -322,6 +361,9 @@ const DetailsView: React.FC<DetailsViewProps> = ({
                                         onInputChange={handleInputChange}
                                         setRef={(el) => (sectionRefs.current[key] = el)}
                                         isEditMode={isEditMode}
+                                        showSaveButton={showSectionSaveButtons}
+                                        fieldErrors={fieldErrors}
+                                        onFieldInteraction={onFieldInteraction}
                                     />
                                 ))}
 

@@ -2,7 +2,7 @@ import React from 'react';
 
 import Avatar from '../components/ui/Avatar';
 import Badge from '../components/ui/Badge';
-import { MoreHorizontal, Download as DownloadIcon } from 'lucide-react';
+import { MoreHorizontal, Download as DownloadIcon, Trash2 } from 'lucide-react';
 import { Column } from '@/components/common/table/table';
 
 export interface Tenant {
@@ -21,7 +21,7 @@ export interface Tenant {
   status: 'Active' | 'Inactive' | 'Pending';
 }
 
-export const tenantColumns: Column<Tenant>[] = [
+export const getTenantColumns = (onDelete?: (e: React.MouseEvent, id: string) => void): Column<Tenant>[] => [
   {
     header: 'Tenant Name',
     accessorKey: 'tenantName',
@@ -78,7 +78,7 @@ export const tenantColumns: Column<Tenant>[] = [
   {
     header: 'Action',
     className: 'text-right',
-    cell: () => (
+    cell: (row) => (
       <div className="flex items-center justify-end gap-2">
         <button className="text-grey-400 hover:text-grey-600 dark:text-grey-500 dark:hover:text-grey-300 transition-colors">
           <DownloadIcon size={16} />
@@ -86,10 +86,21 @@ export const tenantColumns: Column<Tenant>[] = [
         <button className="text-grey-400 hover:text-grey-600 dark:text-grey-500 dark:hover:text-grey-300 transition-colors">
           <MoreHorizontal size={16} />
         </button>
+        {onDelete && (
+          <button 
+             onClick={(e) => onDelete(e, row.id)}
+             className="text-danger hover:text-red-700 dark:hover:text-red-400 transition-colors ml-2"
+             title="Delete"
+          >
+             <Trash2 size={16} />
+          </button>
+        )}
       </div>
     ),
   },
 ];
+
+export const tenantColumns = getTenantColumns();
 
 export const TENANT_DATA: Tenant[] = [
   {

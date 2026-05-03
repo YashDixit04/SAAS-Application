@@ -21,7 +21,15 @@ export interface Offering {
   name: string;
   price: number;
   catalogId: string;
-  vendorId: string;
+  vendorId?: string;
+  isVendorProduct?: boolean;
+  ports?: string[];
+  productId?: string;
+  productIdType?: string;
+  images?: string[];
+  videos?: string[];
+  variations?: string[];
+  inventory?: Array<Record<string, unknown>>;
   createdAt: string;
   updatedAt: string;
 }

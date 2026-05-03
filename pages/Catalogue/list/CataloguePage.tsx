@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { Calendar, ChevronDown, Download, SlidersHorizontal, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Combobox from '@/components/ui/Combobox';
 import GenericTablePage from '@/components/common/GenericTablePage';
@@ -18,13 +18,105 @@ import agentService from '@/services/agentService';
 import Loader from '@/components/common/Loader';
 import Snackbar from '@/components/ui/Snackbar';
 import { useCart } from '@/context/CartContext';
+import tenantService from '@/services/tenantService';
+import { ApiException } from '@/lib/apiClient';
+import * as XLSX from 'xlsx';
+
+type TenantCatalogueMode = 'vendor-only' | 'both' | 'smc-only' | 'unknown';
+
+const resolveTenantCatalogueMode = (selection: string | undefined): TenantCatalogueMode => {
+  if (typeof selection !== 'string') {
+    return 'unknown';
+  }
+
+  const normalized = selection.trim().toLowerCase();
+  if (!normalized) {
+    return 'unknown';
+  }
+
+  if (normalized.includes('both')) {
+    return 'both';
+  }
+
+  if (normalized.includes('vendor') && !normalized.includes('smc')) {
+    return 'vendor-only';
+  }
+
+  if (normalized.includes('smc') && !normalized.includes('vendor')) {
+    return 'smc-only';
+  }
+
+  if (normalized.includes('smc') && normalized.includes('vendor')) {
+    return 'both';
+  }
+
+  return 'unknown';
+};
+
+const formatPublishedOn = (value: string | undefined): string => {
+  if (!value) {
+    return 'N/A';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit',
+  });
+};
+
+const buildReferenceCode = (catalogName: string, offeringId: string): string => {
+  const catalogCode = catalogName
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(0, 4)
+    .toUpperCase() || 'CAT';
+
+  const offeringCode = offeringId.replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase() || 'ITEM';
+  return `${catalogCode}-${offeringCode}`;
+};
+
+const formatInventoryForExport = (inventory: Array<Record<string, unknown>> | undefined): string => {
+  if (!Array.isArray(inventory) || inventory.length === 0) {
+    return '';
+  }
+
+  return inventory
+    .map((item) => {
+      const variant = typeof item.variant === 'string' ? item.variant.trim() : '';
+      const sku = typeof item.sku === 'string' ? item.sku.trim() : '';
+      const barcode = typeof item.barcode === 'string' ? item.barcode.trim() : '';
+      const quantity = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity ?? 0);
+
+      const segments = [
+        variant ? `Variant: ${variant}` : '',
+        sku ? `SKU: ${sku}` : '',
+        barcode ? `Barcode: ${barcode}` : '',
+        Number.isFinite(quantity) && quantity > 0 ? `Qty: ${quantity}` : '',
+      ].filter((segment) => segment.length > 0);
+
+      if (segments.length === 0) {
+        return '';
+      }
+
+      return segments.join(', ');
+    })
+    .filter((value) => value.length > 0)
+    .join(' | ');
+};
 
 interface CataloguePageProps {
   onNavigate?: (tab: string) => void;
+  tenantId?: string;
 }
 
-const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
+const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: tenantIdFromRoute }) => {
   const session = authService.getSession();
+  const tenantId = tenantIdFromRoute || session?.tenantId;
   const isSpecialRole = session?.roleType === 'tenantadmin_subusers';
 
   const [selectedVendor, setSelectedVendor] = useState<string>('All');
@@ -36,7 +128,11 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
 
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [vendors, setVendors] = useState<string[]>([]);
+  const [tenantCatalogueMode, setTenantCatalogueMode] = useState<TenantCatalogueMode>('unknown');
+  const [tenantVendorNames, setTenantVendorNames] = useState<string[]>([]);
+  const [catalogueNotice, setCatalogueNotice] = useState('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [deletingOfferingId, setDeletingOfferingId] = useState<string | null>(null);
 
   // New Modal States
   const [isRequisitionModalOpen, setIsRequisitionModalOpen] = useState(false);
@@ -50,6 +146,57 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
   const { cartItems, updateQuantity } = useCart();
   const [isSnackbarOpen, setIsSnackbarOpen] = useState<boolean>(false);
 
+  const handleExportProducts = () => {
+    if (filteredData.length === 0) {
+      return;
+    }
+
+    const exportRows = filteredData.map((product, index) => {
+      const images = Array.isArray(product.images) ? product.images.join(', ') : '';
+      const videos = Array.isArray(product.videos) ? product.videos.join(', ') : '';
+      const variations = Array.isArray(product.variations) ? product.variations.join(', ') : '';
+      const resolvedPort = Array.isArray(product.ports) && product.ports.length > 0
+        ? product.ports.join(', ')
+        : (product.port ?? '');
+
+      return {
+        'S.No': index + 1,
+        'Product ID': product.productId || product.referenceCode || String(product.id),
+        'Product ID Type': product.productIdType || '',
+        'Product Name': product.productName,
+        Category: product.category,
+        'Packing Info': product.packingInfo,
+        'Reference Code': product.referenceCode,
+        Vendor: product.vendorName,
+        Status: product.status,
+        'Published On': product.publishedOn,
+        Images: images,
+        Videos: videos,
+        Variations: variations,
+        Inventory: formatInventoryForExport(product.inventory),
+        Port: resolvedPort,
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const keys = Object.keys(exportRows[0]);
+    worksheet['!cols'] = keys.map((key) => {
+      const maxCellLength = Math.max(
+        key.length,
+        ...exportRows.map((row) => String(row[key as keyof typeof row] ?? '').length),
+      );
+
+      return { wch: Math.min(Math.max(maxCellLength + 2, 14), 60) };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Product Listing');
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const tenantLabel = tenantId ? `tenant-${tenantId.slice(0, 8)}` : 'global';
+    XLSX.writeFile(workbook, `catalogue-product-list-${tenantLabel}-${dateStamp}.xlsx`);
+  };
+
   const handleAddToCart = (productId: number, qty: number) => {
     const currentQty = cartItems[productId] || 0;
     updateQuantity(productId, qty);
@@ -60,25 +207,224 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleDeleteProduct = async (product: CatalogProduct) => {
+    if (!tenantId) {
+      setCatalogueNotice('Delete is available only within a tenant catalogue.');
+      return;
+    }
+
+    if (!product.catalogId || !product.offeringId) {
+      setCatalogueNotice('Unable to delete this product mapping.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Delete this product from this tenant catalogue? This removes mapping for this tenant only.',
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingOfferingId(product.offeringId);
+
+    try {
+      await tenantService.deleteOffering(tenantId, product.catalogId, product.offeringId);
+
+      setProducts((prevProducts) => {
+        const nextProducts = prevProducts.filter((item) => item.offeringId !== product.offeringId);
+        setVendors(Array.from(new Set(nextProducts.map((item) => item.vendorName))).filter(Boolean));
+        return nextProducts;
+      });
+
+      setCatalogueNotice('Product mapping deleted for this tenant.');
+    } catch (error) {
+      if (error instanceof ApiException) {
+        setCatalogueNotice(error.errorMessage || 'Failed to delete tenant product mapping.');
+      } else {
+        setCatalogueNotice('Failed to delete tenant product mapping.');
+      }
+    } finally {
+      setDeletingOfferingId(null);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
-    setIsLoading(true);
 
-    Promise.all([
-      catalogService.getProducts(),
-      catalogService.getVendors(),
-      catalogService.getRequisitionModalConfig(),
-    ]).then(([productsData, vendorsData, reqConfig]) => {
-      if (mounted) {
+    const loadCatalogue = async () => {
+      setIsLoading(true);
+
+      try {
+        const reqConfig = await catalogService.getRequisitionModalConfig();
+        if (!mounted) {
+          return;
+        }
+        setReqModalConfigData(reqConfig);
+
+        if (tenantId) {
+          try {
+            const tenantDetails = await tenantService.getTenantDetails(tenantId);
+            const [tenantVendors, tenantCatalogs] = await Promise.all([
+              tenantService.getVendors(tenantId),
+              tenantService.getCatalogs(tenantId),
+            ]);
+
+            if (!mounted) {
+              return;
+            }
+
+            const mode = resolveTenantCatalogueMode(
+              tenantDetails?.userConfigurations?.userTypeSelection,
+            );
+
+            const resolvedTenantVendorNames = Array.isArray(tenantVendors)
+              ? tenantVendors
+                .map((vendor) => vendor.basicInfo.companyName)
+                .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+              : [];
+
+            let nextProductId = 1;
+            const tenantProducts = (tenantCatalogs || []).flatMap((catalog) => {
+              const offerings = Array.isArray(catalog.offerings) ? catalog.offerings : [];
+              return offerings.map((offering) => ({
+                id: nextProductId++,
+                catalogId: catalog.id,
+                offeringId: offering.id,
+                productName: offering.name,
+                packingInfo: catalog.description || 'Standard Packing',
+                referenceCode: buildReferenceCode(catalog.name, offering.id),
+                vendorName: offering.vendor?.name || 'SMC Catalogue',
+                status: 'Active' as const,
+                category: catalog.name,
+                publishedOn: formatPublishedOn(offering.createdAt),
+                image: `https://picsum.photos/seed/${offering.id}/200/200`,
+                productId: offering.productId,
+                productIdType: offering.productIdType,
+                ports: Array.isArray(offering.ports) ? offering.ports : [],
+                port: Array.isArray(offering.ports) && offering.ports.length > 0
+                  ? offering.ports[0]
+                  : undefined,
+                images: Array.isArray(offering.images) ? offering.images : [],
+                videos: Array.isArray(offering.videos) ? offering.videos : [],
+                variations: Array.isArray(offering.variations) ? offering.variations : [],
+                inventory: Array.isArray(offering.inventory) ? offering.inventory : [],
+                isVendorProduct: offering.isVendorProduct ?? Boolean(offering.vendorId),
+              }));
+            });
+
+            let scopedProducts = tenantProducts;
+            let notice = 'Showing tenant catalogue.';
+
+            if (mode === 'vendor-only') {
+              const vendorProducts = tenantProducts.filter((product) => product.isVendorProduct);
+              const normalizedVendorNames = new Set(
+                resolvedTenantVendorNames
+                  .map((name) => name.trim().toLowerCase())
+                  .filter((name) => name.length > 0),
+              );
+
+              if (vendorProducts.length === 0) {
+                scopedProducts = tenantProducts;
+                notice = 'Vendor-only tenant: no vendor products found; showing all offerings.';
+              } else if (normalizedVendorNames.size === 0) {
+                scopedProducts = vendorProducts;
+                notice = 'Vendor-only tenant: vendor names missing; showing all vendor products.';
+              } else {
+                const nameMatched = vendorProducts.filter((product) => {
+                  const vendorName = typeof product.vendorName === 'string'
+                    ? product.vendorName.trim().toLowerCase()
+                    : '';
+                  return normalizedVendorNames.has(vendorName);
+                });
+
+                if (nameMatched.length > 0) {
+                  scopedProducts = nameMatched;
+                  notice = 'Vendor-only tenant: showing vendor-mapped products.';
+                } else {
+                  scopedProducts = vendorProducts;
+                  notice = 'Vendor-only tenant: no vendor-name match; showing all vendor products.';
+                }
+              }
+            } else if (mode === 'smc-only') {
+              const smcProducts = tenantProducts.filter((product) => !product.isVendorProduct);
+              if (smcProducts.length > 0) {
+                scopedProducts = smcProducts;
+                notice = 'SMC-only tenant: showing SMC products (port-wise).';
+              } else {
+                scopedProducts = tenantProducts;
+                notice = 'SMC-only tenant: no SMC products found; showing all offerings.';
+              }
+            } else if (mode === 'both') {
+              notice = 'SMC + Vendor tenant: showing both vendor and SMC products.';
+            }
+
+            setTenantCatalogueMode(mode);
+            setTenantVendorNames(resolvedTenantVendorNames);
+            setProducts(scopedProducts);
+            setVendors(Array.from(new Set(scopedProducts.map((item) => item.vendorName))).filter(Boolean));
+
+            setCatalogueNotice(notice);
+
+            return;
+          } catch (tenantLoadError) {
+            if (!mounted) {
+              return;
+            }
+
+            if (tenantLoadError instanceof ApiException && tenantLoadError.statusCode === 404) {
+              setTenantCatalogueMode('unknown');
+              setTenantVendorNames([]);
+              setProducts([]);
+              setVendors([]);
+              setCatalogueNotice('Selected tenant was not found. Open catalogue from a valid tenant details page.');
+              return;
+            }
+
+            console.error('Failed to load tenant-scoped catalogue:', tenantLoadError);
+            setTenantCatalogueMode('unknown');
+            setTenantVendorNames([]);
+            setProducts([]);
+            setVendors([]);
+            setCatalogueNotice('Unable to load tenant catalogue right now.');
+            return;
+          }
+        }
+
+        const [productsData, vendorsData] = await Promise.all([
+          catalogService.getProducts(),
+          catalogService.getVendors(),
+        ]);
+
+        if (!mounted) {
+          return;
+        }
+
+        setTenantCatalogueMode('unknown');
+        setTenantVendorNames([]);
         setProducts(productsData);
         setVendors(vendorsData);
-        setReqModalConfigData(reqConfig);
-        setIsLoading(false);
+        setCatalogueNotice('Using default catalogue dataset.');
+      } catch (error) {
+        console.error('Failed to load catalogue page data:', error);
+        if (!mounted) {
+          return;
+        }
+
+        setProducts([]);
+        setVendors([]);
+        setCatalogueNotice('Failed to load catalogue data.');
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-    });
+    };
+
+    void loadCatalogue();
 
     return () => { mounted = false; };
-  }, []);
+  }, [tenantId]);
 
   const itemsPerPage = 8;
 
@@ -88,7 +434,10 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
   ];
 
   // Combobox options for regular users
-  const vendorOptions = vendors.map((v) => ({ value: v, label: v }));
+  const vendorOptions = [
+    { value: 'All', label: 'All Vendors' },
+    ...vendors.map((v) => ({ value: v, label: v })),
+  ];
   const statusOptions = [
     { value: 'All', label: 'All Statuses' },
     { value: 'Active', label: 'Active' },
@@ -126,11 +475,11 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
           ),
         },
         {
-          header: 'Category',
-          accessorKey: 'category',
+          header: 'Catalog ID',
+          accessorKey: 'catalogId',
           cell: (row) => (
-            <Badge variant="soft" color="info" className="rounded-full px-3">
-              {row.category}
+            <Badge variant="soft" color="info" className="rounded-full px-3 font-mono text-xs">
+              {row.catalogId || 'N/A'}
             </Badge>
           ),
         },
@@ -193,19 +542,64 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
         }
       ] as Column<CatalogProduct>[];
     }
-    return catalogService.getColumnsConfig();
-  }, [isSpecialRole, cartItems, isRequisitionCreated]);
+    const allBaseColumns = catalogService.getColumnsConfig();
+
+    // For SMC-only tenants, remove the Vendor column entirely
+    const baseColumns = tenantCatalogueMode === 'smc-only'
+      ? allBaseColumns.filter((col) => col.header !== 'Vendor')
+      : allBaseColumns;
+
+    if (!tenantId) {
+      return baseColumns;
+    }
+
+    return baseColumns.map((column) => {
+      if (column.header !== 'Action') {
+        return column;
+      }
+
+      return {
+        ...column,
+        className: 'text-right',
+        cell: (row: CatalogProduct) => {
+          const isDeleting = deletingOfferingId === row.offeringId;
+
+          return (
+            <div className="flex items-center justify-end">
+              <Button
+                variant="ghost"
+                color="danger"
+                size="small"
+                leftIcon={<Trash2 size={14} />}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleDeleteProduct(row);
+                }}
+                disabled={!row.catalogId || !row.offeringId || isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          );
+        },
+      } as Column<CatalogProduct>;
+    });
+  }, [
+    isSpecialRole,
+    cartItems,
+    isRequisitionCreated,
+    tenantId,
+    deletingOfferingId,
+    tenantCatalogueMode,
+  ]);
 
   // Filter Data
   const filteredData = useMemo(() => {
     let data = products;
+
     if (isSpecialRole) {
       // Show only active or expiring products
       data = data.filter((row) => row.status === 'Active' || row.isExpiring);
-      // Switch between company and global catalogue view
-      if (scope === 'Company') {
-        data = data.slice(0, Math.ceil(data.length / 2));
-      }
       // Apply Country/Port filters
       if (selectedCountry && selectedCountry !== 'All') {
         data = data.filter((row) => row.country === selectedCountry);
@@ -222,7 +616,15 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
       }
     }
     return data;
-  }, [products, isSpecialRole, scope, selectedVendor, selectedStatus, selectedCountry, selectedPort]);
+  }, [
+    products,
+    isSpecialRole,
+    selectedVendor,
+    selectedStatus,
+    selectedCountry,
+    selectedPort,
+    tenantCatalogueMode,
+  ]);
 
   // PageLayout Actions
   const actions = isSpecialRole ? (
@@ -275,15 +677,17 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
     </div>
   ) : (
     <div className="flex items-center gap-2">
-      <div className="w-40">
-        <Combobox
-          options={vendorOptions}
-          value={selectedVendor}
-          onChange={(val) => { setSelectedVendor(val as string); }}
-          placeholder="Select Vendor"
-          size="small"
-        />
-      </div>
+      {tenantCatalogueMode !== 'smc-only' && (
+        <div className="w-40">
+          <Combobox
+            options={vendorOptions}
+            value={selectedVendor}
+            onChange={(val) => { setSelectedVendor(val as string); }}
+            placeholder="Select Vendor"
+            size="small"
+          />
+        </div>
+      )}
       <div className="w-36 hidden sm:block">
         <Combobox
           options={statusOptions}
@@ -299,6 +703,17 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
   // GenericTablePage More Actions Hook
   const tableMoreActions = (
     <div className="flex items-center gap-3">
+      <Button
+        variant="outline"
+        color="primary"
+        size="small"
+        className="gap-1.5 whitespace-nowrap"
+        onClick={handleExportProducts}
+        disabled={filteredData.length === 0}
+      >
+        <Download size={14} />
+        Export Excel
+      </Button>
       <Button variant="ghost" color="primary" size="small" className="gap-1.5 whitespace-nowrap hidden sm:flex">
         <SlidersHorizontal size={14} />
         More filters
@@ -400,7 +815,16 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate }) => {
         viewToggle={<ViewToggle viewMode={viewMode} onViewChange={setViewMode} />}
         viewMode={viewMode}
         createButtonLabel={isSpecialRole ? undefined : "Add product"}
-        onCreateClick={isSpecialRole ? undefined : () => onNavigate && onNavigate('addProduct')}
+        onCreateClick={isSpecialRole
+          ? undefined
+          : () => onNavigate && onNavigate(tenantId ? `addProduct_${tenantId}` : 'addProduct')}
+        customContent={
+          catalogueNotice ? (
+            <div className="rounded-lg border border-info/30 bg-info-soft px-4 py-2 text-sm text-info">
+              {catalogueNotice}
+            </div>
+          ) : undefined
+        }
       />
 
       {finalReqModalConfig && (

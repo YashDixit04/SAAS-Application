@@ -10,8 +10,10 @@ export interface Vessel {
   vesselType: string;
   captain: string;
   location: string;
-  status: 'Active' | 'Docked' | 'In Transit' | 'Maintenance';
+  status: 'Active' | 'In Port' | 'Sailing' | 'Dry Dock';
   lastInspection: string;
+  _backendId?: string;
+  _tenantId?: string;
 }
 
 export const vesselsColumns: Column<Vessel>[] = [
@@ -43,7 +45,15 @@ export const vesselsColumns: Column<Vessel>[] = [
     cell: (row) => (
       <Badge
         variant="soft"
-        color={row.status === 'Active' ? 'success' : row.status === 'Docked' ? 'info' : row.status === 'In Transit' ? 'warning' : 'danger'}
+        color={
+          row.status === 'Active'
+            ? 'success'
+            : row.status === 'In Port'
+              ? 'info'
+              : row.status === 'Sailing'
+                ? 'warning'
+                : 'danger'
+        }
         className="rounded-full px-3"
       >
         {row.status}
@@ -85,7 +95,7 @@ export const vesselsTableData: Vessel[] = [
     vesselType: "Cargo Vessel",
     captain: "Captain Michael Ross",
     location: "Dubai Port",
-    status: "Docked",
+    status: "In Port",
     lastInspection: "2024-01-25",
   },
   {
@@ -95,7 +105,7 @@ export const vesselsTableData: Vessel[] = [
     vesselType: "Bulk Carrier",
     captain: "Captain Sarah Lee",
     location: "Rotterdam Port",
-    status: "In Transit",
+    status: "Sailing",
     lastInspection: "2024-02-05",
   },
   {
@@ -115,7 +125,7 @@ export const vesselsTableData: Vessel[] = [
     vesselType: "Container Ship",
     captain: "Captain Emily Chen",
     location: "Shanghai Port",
-    status: "Maintenance",
+    status: "Dry Dock",
     lastInspection: "2024-02-10",
   },
   {
@@ -135,7 +145,7 @@ export const vesselsTableData: Vessel[] = [
     vesselType: "Bulk Carrier",
     captain: "Captain Lisa Park",
     location: "Mumbai Port",
-    status: "Docked",
+    status: "In Port",
     lastInspection: "2024-02-12",
   },
 ];
