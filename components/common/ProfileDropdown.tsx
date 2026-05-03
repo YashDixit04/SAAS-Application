@@ -15,7 +15,7 @@ interface ProfileDropdownProps {
   onClose: () => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
-  triggerRef: React.RefObject<HTMLDivElement>;
+  triggerRef: React.RefObject<HTMLDivElement | null>;
   onLogout?: () => void;
 }
 

@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
                 const data = await apiClient.get<typeof REVENUE_TABLE_DATA>('/dashboard/revenue');
                 // Ensure data is array or fallback to empty array
                 setRevenueData(Array.isArray(data) ? data : []);
-                
+
                 // Fallback static data used for UI testing previously
                 // setRevenueData(REVENUE_TABLE_DATA);
             } catch (err) {

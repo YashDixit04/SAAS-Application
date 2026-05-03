@@ -192,6 +192,7 @@ export const isValidPage = (pageName: string): boolean => {
     'dashboard',
     'users',
     'platformUsers',
+    'superadminCatalogue',
     'security',
     'offers',
     'finance',
@@ -201,6 +202,7 @@ export const isValidPage = (pageName: string): boolean => {
     'tenantDetails',
     'help',
     'tenantSubUsers',
+    'tenantVendors',
     'tenantVessels',
     'tenantOrders',
     'tenantCatalogue',
@@ -208,6 +210,7 @@ export const isValidPage = (pageName: string): boolean => {
     'tenantDocuments',
     'tenantActivityLogs',
     'addAccount',
+    'addVendor',
     'cart',
   ];
 

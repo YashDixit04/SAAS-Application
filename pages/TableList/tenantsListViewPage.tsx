@@ -2,11 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Heading3 } from '../../components/ui/Typography';
 import Button from '@/components/ui/Button';
 import { Calendar, ChevronDown } from 'lucide-react';
-import { TENANT_DATA, tenantColumns } from '@/data/tenantdata';
+import { TENANT_DATA, getTenantColumns } from '@/data/tenantdata';
+import tenantService from '@/services/tenantService';
 import TenantTable from '@/components/common/listfield/tenanttable';
 import TenantGrid from '@/components/common/table/gridtable';
 import PageLayout from '@/components/layout/PageLayout';
 import apiClient from '@/lib/apiClient';
+
+const isRenderableImageSrc = (value: unknown): value is string => {
+    return typeof value === 'string' && value.trim().length > 0 && !value.startsWith('blob:');
+};
+
+const toSlug = (value: string): string =>
+    value
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 
 const Tenants: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
     const [tenants, setTenants] = useState<any[]>(TENANT_DATA); // fallback initially
@@ -22,21 +34,23 @@ const Tenants: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate 
                 const mappedTenants = tenantArray.map((t: any) => ({
                     id: t.id,
                     tenantName: t.name,
-                    email: `${t.domain || t.name.replace(/\s/g, '').toLowerCase()}@admin.com`,
+                    email: t.contactEmail || `${(t.domain || t.name).replace(/\s/g, '').toLowerCase()}@admin.com`,
                     createdBy: {
                         name: 'Admin',
-                        email: 'admin@b2b.com',
-                        avatar: `https://ui-avatars.com/api/?name=Admin&bg=random`
+                        email: t.contactEmail || `${(t.domain || t.name).replace(/\s/g, '').toLowerCase()}@admin.com`,
+                        avatar: isRenderableImageSrc(t.profilePhoto)
+                            ? t.profilePhoto
+                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&bg=random`,
                     },
-                    code: t.id.substring(0, 8).toUpperCase(),
-                    purchasingDate: new Date(t.createdAt || Date.now()).toLocaleDateString(),
-                    amount: '$0.00',
-                    type: 'Enterprise',
-                    status: 'Active',
+                    code: t.tenantCode || t.id.substring(0, 8).toUpperCase(),
+                    purchasingDate: new Date(t.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                    amount: t.amountPaid ? (t.amountPaid.startsWith('$') ? t.amountPaid : `$${t.amountPaid}`) : '$0.00',
+                    type: t.planType || 'Annual',
+                    status: t.status || 'Active',
                 }));
 
                 setTenants(mappedTenants);
-                
+
                 // Fallback to static if empty and we want to demo
                 if (mappedTenants.length === 0) {
                     setTenants(TENANT_DATA);
@@ -51,6 +65,20 @@ const Tenants: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate 
 
         fetchTenants();
     }, []);
+
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
+            try {
+                await tenantService.deleteTenant(id);
+                setTenants(prev => prev.filter(t => t.id !== id));
+            } catch (err) {
+                console.error('Failed to delete tenant', err);
+            }
+        }
+    };
+
+    const columns = getTenantColumns(handleDelete);
 
     const breadcrumbItems = [
         { label: 'Home', href: '#' },
@@ -84,11 +112,17 @@ const Tenants: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate 
                 <div className="flex-1 flex flex-col p-6">
                     <TenantTable
                         data={tenants}
-                        columns={tenantColumns}
+                        columns={columns}
                         createButtonLabel="Create a new tenant"
                         onCreateClick={() => onNavigate?.('addTenant')}
-                        renderGrid={(data) => <TenantGrid data={data} itemsPerPage={8} onCardClick={() => onNavigate?.('tenantDetails')} />}
-                        onRowClick={() => onNavigate?.('tenantDetails')}
+                        renderGrid={(data) => (
+                            <TenantGrid
+                                data={data}
+                                itemsPerPage={8}
+                                onCardClick={(item) => onNavigate?.(`/tenant/${item.id}/${toSlug(item.tenantName || 'details')}`)}
+                            />
+                        )}
+                        onRowClick={(row) => onNavigate?.(`/tenant/${row.id}/${toSlug(row.tenantName || 'details')}`)}
                     />
                 </div>
             ) : (

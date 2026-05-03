@@ -32,12 +32,21 @@ export const BreadcrumbItem: React.FC<BreadcrumbItemProps> = ({
   onClick
 }) => {
   const BaseTag = href || onClick ? 'a' : 'span';
+
+  const handleClick: React.MouseEventHandler<HTMLAnchorElement> = (event) => {
+    if (!onClick) {
+      return;
+    }
+
+    event.preventDefault();
+    onClick();
+  };
   
   return (
     <li className={`inline-flex items-center ${className}`}>
       <BaseTag 
         href={href} 
-        onClick={onClick}
+        onClick={onClick ? handleClick : undefined}
         className={`
             transition-colors flex items-center gap-2
             ${active 

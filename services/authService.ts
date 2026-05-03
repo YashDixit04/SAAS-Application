@@ -135,15 +135,48 @@ class AuthService {
     if (session.roleType === 'superadmin') {
       return [
         'dashboard', 'users', 'platformUsers', 'security', 'offers', 'finance',
-        'actions', 'integrations', 'userDetails', 'tenantDetails', 'help',
-        'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue',
-        'addProduct', 'tenantDocuments', 'tenantActivityLogs', 'addAccount', 'addTenant', 'cart',
+        'actions', 'integrations', 'userDetails', 'tenantDetails', 'help', 'superadminCatalogue',
+        'tenantSubUsers', 'tenantVendors', 'tenantVessels', 'tenantOrders', 'tenantCatalogue',
+        'addProduct', 'tenantDocuments', 'tenantActivityLogs', 'addAccount', 'addTenant', 'addVendor', 'cart',
       ];
     }
     return session.permissions.pages;
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  /**
+   * Create a new platform user account (called from AddAccountPage).
+   * Sends all fields — username, password, roleType, permissions — to the backend.
+   */
+  async signup(data: {
+    username: string;
+    email: string;
+    password: string;
+    roleType: RoleType;
+    permissions: UserPermissions;
+  }): Promise<boolean> {
+    const session = this.getSession();
+    const tenantId = session?.tenantId || '';
+    if (!tenantId) return false;
+
+    try {
+      await apiClient.post(`/tenants/${tenantId}/users`, {
+        username:    data.username,
+        email:       data.email,
+        password:    data.password,
+        roleType:    data.roleType,
+        firstName:   data.username,   // use username as display name
+        lastName:    '',
+        permissions: data.permissions,
+        role:        ['admin'].includes(data.roleType) ? 'ADMIN' : 'USER',
+      });
+      return true;
+    } catch (err) {
+      console.error('Signup error:', err);
+      throw err;
+    }
+  }
 }
 
 export const authService = new AuthService();

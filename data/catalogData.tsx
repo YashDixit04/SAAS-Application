@@ -19,6 +19,15 @@ export interface CatalogProduct {
   isExpiring?: boolean;
   country?: string;
   port?: string;
+  productId?: string;
+  productIdType?: string;
+  ports?: string[];
+  images?: string[];
+  videos?: string[];
+  variations?: string[];
+  inventory?: Array<Record<string, unknown>>;
+  catalogId?: string;
+  offeringId?: string;
 }
 
 // --- Vendors ---
@@ -59,11 +68,11 @@ export const catalogColumns: Column<CatalogProduct>[] = [
     ),
   },
   {
-    header: 'Category',
-    accessorKey: 'category',
+    header: 'Catalog ID',
+    accessorKey: 'catalogId',
     cell: (row) => (
-      <Badge variant="soft" color="info" className="rounded-full px-3">
-        {row.category}
+      <Badge variant="soft" color="info" className="rounded-full px-3 font-mono text-xs">
+        {row.catalogId || 'N/A'}
       </Badge>
     ),
   },

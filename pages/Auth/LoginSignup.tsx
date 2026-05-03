@@ -2,15 +2,19 @@ import React, { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { authService } from '../../services/authService';
+import { ApiException } from '@/lib/apiClient';
 import { Mail, Lock, User } from 'lucide-react';
-import { BodyXs, Heading6 } from '@/components/ui/Typography';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginSignupProps {
   onLoginSuccess: () => void;
+  onRegisterVendor?: () => void;
 }
 
-const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess }) => {
+const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess, onRegisterVendor }) => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [loginAudience, setLoginAudience] = useState<'user' | 'vendor'>('user');
   const [formData, setFormData] = useState({
     usernameOrEmail: '',
     username: '',
@@ -20,6 +24,29 @@ const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess }) => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const resetForm = () => {
+    setFormData({ usernameOrEmail: '', username: '', email: '', password: '', confirmPassword: '' });
+  };
+
+  const handleRegisterVendor = () => {
+    if (onRegisterVendor) {
+      onRegisterVendor();
+      return;
+    }
+
+    navigate('/vendor-register');
+  };
+
+  const handleAudienceSwitch = (audience: 'user' | 'vendor') => {
+    setLoginAudience(audience);
+    setError('');
+    resetForm();
+
+    if (audience === 'vendor') {
+      setIsLogin(true);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -86,16 +113,21 @@ const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess }) => {
         },
       });
 
-      if (success) {
-        setIsLogin(true);
-        setError('');
-        alert('Account created successfully! Please log in.');
-        setFormData({ usernameOrEmail: '', username: '', email: '', password: '', confirmPassword: '' });
-      } else {
+      if (!success) {
         setError('Username or email already exists');
+        return;
       }
-    } catch {
-      setError('An error occurred during signup. Please try again.');
+
+      setIsLogin(true);
+      setError('');
+      alert('Account created successfully! Please log in.');
+      setFormData({ usernameOrEmail: '', username: '', email: '', password: '', confirmPassword: '' });
+    } catch (err) {
+      if (err instanceof ApiException) {
+        setError(err.errorMessage);
+      } else {
+        setError('An error occurred during signup. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -104,7 +136,7 @@ const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess }) => {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError('');
-    setFormData({ usernameOrEmail: '', username: '', email: '', password: '', confirmPassword: '' });
+    resetForm();
   };
 
   return (
@@ -127,17 +159,51 @@ const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess }) => {
         >
           {/* Header */}
           <div className="text-center mb-6">
+            <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-white/10 p-1">
+              <button
+                type="button"
+                onClick={() => handleAudienceSwitch('user')}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                  loginAudience === 'user'
+                    ? 'bg-white text-black'
+                    : 'text-white/80 hover:bg-white/10'
+                }`}
+              >
+                Login as User
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAudienceSwitch('vendor')}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                  loginAudience === 'vendor'
+                    ? 'bg-white text-black'
+                    : 'text-white/80 hover:bg-white/10'
+                }`}
+              >
+                Login as Vendor
+              </button>
+            </div>
+
             <h2 className="text-xl font-bold text-white">
-              {isLogin ? 'Sign in' : 'Sign up'}
+              {isLogin ? (loginAudience === 'vendor' ? 'Vendor Sign in' : 'Sign in') : 'Sign up'}
             </h2>
             <p className="pt-2 text-sm text-white/60">
               {isLogin ? (
-                <>
-                  Need an account?{' '}
-                  <button onClick={toggleMode} className="text-primary font-semibold hover:underline">
-                    Sign up
-                  </button>
-                </>
+                loginAudience === 'vendor' ? (
+                  <>
+                    New vendor?{' '}
+                    <button onClick={handleRegisterVendor} className="text-primary font-semibold hover:underline">
+                      Register as vendor
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Need an account?{' '}
+                    <button onClick={toggleMode} className="text-primary font-semibold hover:underline">
+                      Sign up
+                    </button>
+                  </>
+                )
               ) : (
                 <>
                   Already have an account?{' '}
@@ -251,15 +317,27 @@ const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess }) => {
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
 
-              {/* Dev credentials hint */}
-              <div
-                className="mt-2 p-3 rounded-lg border border-info/20"
-                style={{ background: 'rgba(73, 33, 234, 0.1)' }}
-              >
-                <p className="text-info text-xs font-medium mb-1">Default Superadmin Credentials:</p>
-                <p className="text-white/50 text-xs">Email: <span className="font-mono">superadmin@gmail.com</span></p>
-                <p className="text-white/50 text-xs">Password: <span className="font-mono">123456</span></p>
-              </div>
+              {loginAudience === 'vendor' ? (
+                <div className="mt-2 p-3 rounded-lg border border-primary/30 bg-primary/10">
+                  <p className="text-white/85 text-xs mb-2">Register your vendor profile and submit KYC for approval.</p>
+                  <button
+                    type="button"
+                    onClick={handleRegisterVendor}
+                    className="text-primary text-xs font-semibold hover:underline"
+                  >
+                    Register as Vendor
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="mt-2 p-3 rounded-lg border border-info/20"
+                  style={{ background: 'rgba(73, 33, 234, 0.1)' }}
+                >
+                  <p className="text-info text-xs font-medium mb-1">Default Superadmin Credentials:</p>
+                  <p className="text-white/50 text-xs">Email: <span className="font-mono">superadmin@gmail.com</span></p>
+                  <p className="text-white/50 text-xs">Password: <span className="font-mono">123456</span></p>
+                </div>
+              )}
             </form>
           ) : (
             /* Signup Form */

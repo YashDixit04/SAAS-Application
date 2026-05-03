@@ -25,7 +25,7 @@ import {
   Activity
 } from 'lucide-react';
 import Tooltip from '../ui/Tooltip';
-import { filterMenuByPermissions, isAdmin } from '../../utils/rbac';
+import { filterMenuByPermissions, isAdmin, isSuperAdmin } from '../../utils/rbac';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -60,8 +60,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={18} strokeWidth={1.5} /> },
     { id: 'users', label: 'Tenants', icon: <Building2 size={18} strokeWidth={1.5} /> },
     { id: 'platformUsers', label: 'Users', icon: <Users size={18} strokeWidth={1.5} /> },
+    ...(isSuperAdmin()
+      ? [{ id: 'superadminCatalogue', label: 'Catalogue', icon: <BookOpen size={18} strokeWidth={1.5} /> }]
+      : []),
     ...(!isAdmin() ? [
       { id: 'tenantSubUsers', label: 'Sub Users', icon: <Users size={18} strokeWidth={1.5} /> },
+      { id: 'tenantVendors', label: 'Vendors', icon: <UserCog size={18} strokeWidth={1.5} /> },
       { id: 'tenantVessels', label: 'Vessels', icon: <Ship size={18} strokeWidth={1.5} /> },
       { id: 'tenantOrders', label: 'Orders', icon: <ShoppingCart size={18} strokeWidth={1.5} /> },
       { id: 'tenantCatalogue', label: 'Catalogue', icon: <BookOpen size={18} strokeWidth={1.5} /> },

@@ -2,50 +2,44 @@ import React, { useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { authService, RoleType } from '@/services/authService';
-import { User, Mail, Lock, Shield, Plus, X } from 'lucide-react';
+import { ApiException } from '@/lib/apiClient';
+import { User, Mail, Lock, Plus, X } from 'lucide-react';
 import { isAdmin } from '@/utils/rbac';
 import PageLayout from '@/components/layout/PageLayout';
 import { Heading2, BodyBase } from '@/components/ui/Typography';
+import UserAccessPermissionsSection from '@/components/users/UserAccessPermissionsSection';
+import {
+    clonePermissionFields,
+    isPlatformRoleType,
+    PLATFORM_COMPONENT_FIELD_OPTIONS,
+    PLATFORM_PAGE_OPTIONS,
+    PLATFORM_ROLE_OPTIONS,
+    PLATFORM_ROLE_PRESETS,
+    PlatformRoleType,
+} from '@/components/users/userFormConfig';
 
-const availablePages = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'users', label: 'Tenants' },
-    { id: 'platformUsers', label: 'Platform Users' },
-    { id: 'security', label: 'Security' },
-    { id: 'offers', label: 'Offers' },
-    { id: 'finance', label: 'Finance' },
-    { id: 'actions', label: 'Actions' },
-    { id: 'integrations', label: 'Integrations' },
-    { id: 'userDetails', label: 'User Details' },
-    { id: 'tenantDetails', label: 'Tenant Details' },
-    { id: 'tenantSubUsers', label: 'Tenant Sub Users' },
-    { id: 'tenantVessels', label: 'Tenant Vessels' },
-    { id: 'tenantOrders', label: 'Tenant Orders' },
-    { id: 'tenantCatalogue', label: 'Tenant Catalogue' },
-    { id: 'addProduct', label: 'Add Product' },
-    { id: 'tenantDocuments', label: 'Tenant Documents' },
-    { id: 'tenantActivityLogs', label: 'Activity Logs' },
-];
+const DEFAULT_PLATFORM_ROLE: PlatformRoleType = 'admin';
 
-const commonComponentFields = [
-    { component: 'tenantTable', fields: ['name', 'email', 'status', 'subscription', 'vessels', 'orders'] },
-    { component: 'userTable', fields: ['name', 'email', 'role', 'status'] },
-    { component: 'vesselTable', fields: ['name', 'type', 'capacity', 'status'] },
-    { component: 'orderTable', fields: ['orderId', 'date', 'status', 'amount'] },
-    { component: 'catalogueTable', fields: ['productName', 'category', 'price', 'stock'] },
-    { component: 'subUsersTable', fields: ['name', 'email', 'role'] },
-    { component: 'dashboard', fields: ['revenue', 'subscriptions', 'tenants', 'activeUsers'] },
-];
+interface AddAccountFormState {
+    username: string;
+    email: string;
+    password: string;
+    roleType: PlatformRoleType;
+}
 
 const AddAccountPage: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
-    const [formData, setFormData] = useState({
+    const defaultPreset = PLATFORM_ROLE_PRESETS[DEFAULT_PLATFORM_ROLE];
+
+    const [formData, setFormData] = useState<AddAccountFormState>({
         username: '',
         email: '',
         password: '',
-        roleType: 'tenantadmin' as RoleType,
+        roleType: DEFAULT_PLATFORM_ROLE,
     });
-    const [selectedPages, setSelectedPages] = useState<string[]>([]);
-    const [componentFields, setComponentFields] = useState<{ [key: string]: string[] }>({});
+    const [selectedPages, setSelectedPages] = useState<string[]>([...defaultPreset.pages]);
+    const [componentFields, setComponentFields] = useState<{ [key: string]: string[] }>(
+        clonePermissionFields(defaultPreset.fields),
+    );
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
@@ -70,7 +64,7 @@ const AddAccountPage: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNa
         );
     }
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value,
@@ -101,44 +95,12 @@ const AddAccountPage: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNa
         }
     };
 
-    const handleQuickSetup = (roleType: RoleType) => {
-        setFormData({ ...formData, roleType });
-        switch (roleType) {
-            case 'admin':
-                setSelectedPages(['dashboard', 'users', 'platformUsers', 'offers', 'userDetails', 'tenantDetails']);
-                setComponentFields({
-                    tenantTable: ['name', 'email', 'status', 'subscription', 'vessels', 'orders'],
-                    userTable: ['name', 'email', 'role', 'status'],
-                    dashboard: ['revenue', 'subscriptions', 'tenants', 'activeUsers'],
-                });
-                break;
-            case 'adminusers':
-                setSelectedPages(['dashboard', 'users', 'tenantDetails']);
-                setComponentFields({
-                    tenantTable: ['name', 'email', 'status', 'vessels'],
-                    dashboard: ['tenants', 'activeUsers'],
-                });
-                break;
-            case 'tenantadmin':
-                setSelectedPages(['dashboard', 'tenantSubUsers', 'tenantVessels', 'tenantOrders', 'tenantCatalogue', 'tenantDocuments']);
-                setComponentFields({
-                    vesselTable: ['name', 'type', 'capacity', 'status'],
-                    orderTable: ['orderId', 'date', 'status', 'amount'],
-                    catalogueTable: ['productName', 'category', 'price', 'stock'],
-                    subUsersTable: ['name', 'email', 'role'],
-                });
-                break;
-            case 'tenantadmin_subusers':
-                setSelectedPages(['tenantVessels', 'tenantOrders']);
-                setComponentFields({
-                    vesselTable: ['name', 'type', 'status'],
-                    orderTable: ['orderId', 'date', 'status'],
-                });
-                break;
-            default:
-                setSelectedPages([]);
-                setComponentFields({});
-        }
+    const applyRolePreset = (roleType: PlatformRoleType) => {
+        const preset = PLATFORM_ROLE_PRESETS[roleType];
+
+        setFormData((prev) => ({ ...prev, roleType }));
+        setSelectedPages([...preset.pages]);
+        setComponentFields(clonePermissionFields(preset.fields));
     };
 
     const handleAddUser = async (e: React.FormEvent) => {
@@ -174,32 +136,42 @@ const AddAccountPage: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNa
                 username: formData.username,
                 email: formData.email,
                 password: formData.password,
-                roleType: formData.roleType,
+                roleType: formData.roleType as RoleType,
                 permissions: {
                     pages: selectedPages,
                     fields: componentFields,
                 },
             });
 
-            if (success) {
-                setSuccess(`Account "${formData.username}" created successfully!`);
-                setFormData({
-                    username: '',
-                    email: '',
-                    password: '',
-                    roleType: 'tenantadmin',
-                });
-                setSelectedPages([]);
-                setComponentFields({});
-                setTimeout(() => setSuccess(''), 3000);
-            } else {
+            if (!success) {
                 setError('Username or email already exists');
+                return;
             }
+
+            setSuccess(`Account "${formData.username}" created successfully!`);
+            const resetPreset = PLATFORM_ROLE_PRESETS[DEFAULT_PLATFORM_ROLE];
+            setFormData({ username: '', email: '', password: '', roleType: DEFAULT_PLATFORM_ROLE });
+            setSelectedPages([...resetPreset.pages]);
+            setComponentFields(clonePermissionFields(resetPreset.fields));
+            // Navigate back to the Users list after a short delay
+            setTimeout(() => onNavigate?.('platformUsers'), 1500);
         } catch (err) {
-            setError('An error occurred while creating. Please try again.');
+            if (err instanceof ApiException) {
+                setError(err.errorMessage);
+            } else {
+                setError('An error occurred while creating. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRoleChange = (nextRoleType: string) => {
+        if (!isPlatformRoleType(nextRoleType)) {
+            return;
+        }
+
+        applyRolePreset(nextRoleType);
     };
 
     const actions = (
@@ -207,7 +179,7 @@ const AddAccountPage: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNa
             variant="outline"
             color="grey"
             size="small"
-            onClick={() => onNavigate?.(formData.roleType.includes('tenant') ? 'users' : 'platformUsers')}
+            onClick={() => onNavigate?.('platformUsers')}
             className="gap-2"
         >
             <X size={16} /> Cancel
@@ -288,104 +260,19 @@ const AddAccountPage: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNa
                                         required
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-1.5">
-                                        Role Type
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            name="roleType"
-                                            value={formData.roleType}
-                                            onChange={(e) => handleQuickSetup(e.target.value as RoleType)}
-                                            className="w-full h-10 px-3 pr-10 bg-white dark:bg-[#0A0A0D] border border-grey-200 dark:border-grey-800 rounded-lg text-grey-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none transition-colors"
-                                            required
-                                        >
-                                            <option value="admin">Admin</option>
-                                            <option value="adminusers">Admin User</option>
-                                            <option value="tenantadmin">Tenant Admin</option>
-                                            <option value="tenantadmin_subusers">Tenant Sub User</option>
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <Shield size={18} className="text-grey-400" />
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-grey-500 dark:text-grey-400 mt-1.5">
-                                        Selecting a role will auto-populate recommended permissions.
-                                    </p>
+                                <div className="md:col-span-2">
+                                    <UserAccessPermissionsSection
+                                        roleType={formData.roleType}
+                                        roleOptions={PLATFORM_ROLE_OPTIONS}
+                                        onRoleChange={handleRoleChange}
+                                        selectedPages={selectedPages}
+                                        pageOptions={PLATFORM_PAGE_OPTIONS}
+                                        onTogglePage={handlePageToggle}
+                                        componentFields={componentFields}
+                                        componentFieldOptions={PLATFORM_COMPONENT_FIELD_OPTIONS}
+                                        onToggleComponentField={handleComponentFieldToggle}
+                                    />
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Pages Access Section */}
-                        <div className="space-y-4 pt-4">
-                            <h3 className="text-lg font-semibold text-grey-900 dark:text-white border-b border-grey-100 dark:border-grey-800 pb-2">
-                                Page Access Permissions
-                            </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                {availablePages.map((page) => (
-                                    <label
-                                        key={page.id}
-                                        className={`flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                                            selectedPages.includes(page.id)
-                                                ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                                : 'border-grey-200 dark:border-grey-800 bg-grey-50 dark:bg-grey-900 hover:border-primary/50'
-                                        }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedPages.includes(page.id)}
-                                            onChange={() => handlePageToggle(page.id)}
-                                            className="rounded border-grey-300 text-primary focus:ring-primary h-4 w-4"
-                                        />
-                                        <span className="text-sm font-medium text-grey-700 dark:text-grey-300">
-                                            {page.label}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Component Fields Access Section */}
-                        <div className="space-y-4 pt-4">
-                            <h3 className="text-lg font-semibold text-grey-900 dark:text-white border-b border-grey-100 dark:border-grey-800 pb-2">
-                                Component Field Permissions
-                            </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                {commonComponentFields.map((component) => (
-                                    <div
-                                        key={component.component}
-                                        className="p-4 rounded-xl border border-grey-200 dark:border-grey-800 bg-grey-50/50 dark:bg-grey-900/50"
-                                    >
-                                        <p className="text-sm font-semibold text-grey-800 dark:text-grey-200 mb-3 capitalize">
-                                            {component.component.replace(/([A-Z])/g, ' $1').trim()}
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {component.fields.map((field) => {
-                                                const isSelected = (componentFields[component.component] || []).includes(field);
-                                                return (
-                                                    <label
-                                                        key={field}
-                                                        className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                                                            isSelected
-                                                                ? 'border-primary bg-primary/10 text-primary'
-                                                                : 'border-grey-200 dark:border-grey-700 bg-white dark:bg-[#0A0A0D] text-grey-600 dark:text-grey-400 hover:border-primary/30'
-                                                        }`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isSelected}
-                                                            onChange={() => handleComponentFieldToggle(component.component, field)}
-                                                            className="sr-only"
-                                                        />
-                                                        <span className="text-xs font-medium">
-                                                            {field}
-                                                        </span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
                         </div>
 

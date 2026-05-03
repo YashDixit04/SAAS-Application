@@ -10,9 +10,19 @@ export interface SubUser {
   email: string;
   role: string;
   department: string;
-  vesselAssigned: string;
-  status: 'Active' | 'Inactive' | 'Pending';
-  lastLogin: string;
+  vesselAssigned: 'Yes' | 'No';
+  status: 'Active';
+  createdAt: string;
+  _backendId?: string;
+  _tenantId?: string;
+  _roleType?: 'tenantadmin' | 'tenantadmin_subusers';
+  _firstName?: string;
+  _lastName?: string;
+  _assignedVesselIds?: string[];
+  _permissions?: {
+    pages: string[];
+    fields: Record<string, string[]>;
+  };
 }
 
 export const subUsersColumns: Column<SubUser>[] = [
@@ -40,7 +50,11 @@ export const subUsersColumns: Column<SubUser>[] = [
   {
     header: 'Vessel Assigned',
     accessorKey: 'vesselAssigned',
-    cell: (row) => <span className="font-medium text-grey-900 dark:text-white">{row.vesselAssigned}</span>,
+    cell: (row) => (
+      <span className="font-medium text-grey-900 dark:text-white">
+        {row.vesselAssigned}
+      </span>
+    ),
   },
   {
     header: 'Status',
@@ -55,8 +69,8 @@ export const subUsersColumns: Column<SubUser>[] = [
     ),
   },
   {
-    header: 'Last Login',
-    accessorKey: 'lastLogin',
+    header: 'Created At',
+    accessorKey: 'createdAt',
   },
   {
     header: 'Action',
@@ -76,80 +90,80 @@ export const subUsersTableData: SubUser[] = [
     id: 1,
     name: "John Carter",
     email: "john.carter@mscfalcons.com",
-    role: "Fleet Manager",
+    role: "Tenant Sub Admin",
     department: "Operations",
-    vesselAssigned: "MSC Demo",
+    vesselAssigned: "Yes",
     status: "Active",
-    lastLogin: "2024-02-22 10:12 AM",
+    createdAt: "2024-02-22 10:12 AM",
   },
   {
     id: 2,
     name: "Emma Watson",
     email: "emma.watson@mscfalcons.com",
-    role: "Procurement Manager",
+    role: "Tenant Sub Admin",
     department: "Supply Chain",
-    vesselAssigned: "MSC Neptune",
+    vesselAssigned: "No",
     status: "Active",
-    lastLogin: "2024-02-21 08:30 AM",
+    createdAt: "2024-02-21 08:30 AM",
   },
   {
     id: 3,
     name: "Robert Downey",
     email: "robert@mscfalcons.com",
-    role: "Finance Manager",
+    role: "Tenant Admin",
     department: "Finance",
-    vesselAssigned: "All Vessels",
-    status: "Inactive",
-    lastLogin: "2024-02-18 03:12 PM",
+    vesselAssigned: "Yes",
+    status: "Active",
+    createdAt: "2024-02-18 03:12 PM",
   },
   {
     id: 4,
     name: "Sarah Miller",
     email: "sarah.miller@mscfalcons.com",
-    role: "Operations Lead",
+    role: "Tenant Sub Admin",
     department: "Operations",
-    vesselAssigned: "MSC Titan",
+    vesselAssigned: "Yes",
     status: "Active",
-    lastLogin: "2024-02-22 09:00 AM",
+    createdAt: "2024-02-22 09:00 AM",
   },
   {
     id: 5,
     name: "David Chen",
     email: "david.chen@mscfalcons.com",
-    role: "Supply Coordinator",
+    role: "Tenant Sub Admin",
     department: "Supply Chain",
-    vesselAssigned: "MSC Demo",
+    vesselAssigned: "No",
     status: "Active",
-    lastLogin: "2024-02-21 11:45 AM",
+    createdAt: "2024-02-21 11:45 AM",
   },
   {
     id: 6,
     name: "Lisa Thompson",
     email: "lisa.t@mscfalcons.com",
-    role: "Accounting Specialist",
+    role: "Tenant Sub Admin",
     department: "Finance",
-    vesselAssigned: "All Vessels",
-    status: "Pending",
-    lastLogin: "2024-02-19 02:30 PM",
+    vesselAssigned: "No",
+    status: "Active",
+    createdAt: "2024-02-19 02:30 PM",
   },
   {
     id: 7,
     name: "James Wilson",
     email: "james.w@mscfalcons.com",
-    role: "Technical Superintendent",
+    role: "Tenant Sub Admin",
     department: "Operations",
-    vesselAssigned: "MSC Neptune",
+    vesselAssigned: "Yes",
     status: "Active",
-    lastLogin: "2024-02-22 08:15 AM",
+    createdAt: "2024-02-22 08:15 AM",
   },
   {
     id: 8,
     name: "Maria Garcia",
     email: "maria.g@mscfalcons.com",
-    role: "Compliance Officer",
+    role: "Tenant Sub Admin",
     department: "Legal",
-    vesselAssigned: "All Vessels",
+    vesselAssigned: "No",
     status: "Active",
-    lastLogin: "2024-02-20 04:00 PM",
+    createdAt: "2024-02-20 04:00 PM",
   },
 ];

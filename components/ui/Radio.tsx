@@ -24,7 +24,7 @@ const Radio: React.FC<RadioProps> = ({
           className="peer sr-only"
           checked={checked}
           disabled={disabled}
-          onChange={onChange || (() => {})}c
+          onChange={onChange || (() => {})}
           {...props}
         />
         

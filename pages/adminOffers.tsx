@@ -14,14 +14,35 @@ import {
 import { Check, Minus, Plus } from 'lucide-react';
 import { PricingPlan, pricingPlans } from '@/data/offeringdata';
 import PageLayout from '@/components/layout/PageLayout';
+import { useNavigate } from 'react-router-dom';
+import { resolveNavigationTarget } from '@/lib/appRouting';
+import { authService } from '@/services/authService';
 
 const Offers: React.FC = () => {
+  const navigate = useNavigate();
+  const session = authService.getSession();
   const [isAnnual, setIsAnnual] = useState(false);
   const [plans] = useState<PricingPlan[]>(pricingPlans);
 
+  const routeContext = {
+    sessionTenantId: session?.tenantId,
+    currentTenantId: session?.tenantId,
+  };
+
+  const homePath = resolveNavigationTarget('dashboard', routeContext);
+  const offersPath = resolveNavigationTarget('offers', routeContext);
+
   const breadcrumbItems = [
-    { label: 'Home', href: '#' },
-    { label: 'Offers', active: true }
+    {
+      label: 'Home',
+      href: homePath,
+      onClick: () => navigate(homePath),
+    },
+    {
+      label: 'Offers',
+      href: offersPath,
+      active: true,
+    }
   ];
 
   const actions = (
