@@ -16,6 +16,8 @@ export interface ModalField {
   label: string;
   placeholder?: string;
   options?: { value: string; label: string }[];
+  optionGroups?: Record<string, { value: string; label: string }[]>;
+  dependsOn?: string;
   required?: boolean;
   CustomComponent?: React.ReactNode; // For advanced layouts like Budget Calculation
 }
@@ -170,14 +172,24 @@ const GenericModal: React.FC<{ config: ModalConfig }> = ({ config }) => {
           </div>
         );
       case 'select':
-      case 'dropdown':
+      case 'dropdown': {
+        let fieldOptions = field.options || [];
+        if (field.dependsOn && field.optionGroups) {
+          const dependentValue = formData[field.dependsOn];
+          if (dependentValue && field.optionGroups[dependentValue]) {
+            fieldOptions = field.optionGroups[dependentValue];
+          } else {
+            fieldOptions = [];
+          }
+        }
+
         return (
           <div key={field.id} className="mb-4">
             <InputLabel className="block text-grey-700 dark:text-grey-300 mb-1.5">
               {field.label}{field.required && <span className="text-danger ml-0.5">*</span>}
             </InputLabel>
             <Combobox
-              options={field.options || []}
+              options={fieldOptions}
               placeholder={field.placeholder || "Select option..."}
               value={formData[field.id] || ''}
               onChange={(val) => {
@@ -188,6 +200,7 @@ const GenericModal: React.FC<{ config: ModalConfig }> = ({ config }) => {
             {errors[field.id] && <span className="text-danger text-xs mt-1 block font-medium">{errors[field.id]}</span>}
           </div>
         );
+      }
       case 'daterange':
         return (
           <div key={field.id} className="mb-4 flex flex-col sm:flex-row gap-3 items-end">
