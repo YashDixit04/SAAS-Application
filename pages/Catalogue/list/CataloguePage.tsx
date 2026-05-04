@@ -3,7 +3,7 @@ import { Calendar, ChevronDown, Download, SlidersHorizontal, Trash2 } from 'luci
 import Button from '@/components/ui/Button';
 import Combobox from '@/components/ui/Combobox';
 import GenericTablePage from '@/components/common/GenericTablePage';
-import { CatalogProduct } from '@/data/catalogData';
+import { CatalogProduct, countryPortMap } from '@/data/catalogData';
 import catalogService from '@/services/catalogService';
 import { BreadcrumbLink } from '@/components/common/Breadcrub/dynamicbreadcrub';
 import ViewToggle from '@/components/layout/viewTableLayout';
@@ -127,6 +127,8 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
   const [selectedPort, setSelectedPort] = useState<string>('All');
 
   const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [tenantProductsData, setTenantProductsData] = useState<CatalogProduct[]>([]);
+  const [globalProductsData, setGlobalProductsData] = useState<CatalogProduct[]>([]);
   const [vendors, setVendors] = useState<string[]>([]);
   const [tenantCatalogueMode, setTenantCatalogueMode] = useState<TenantCatalogueMode>('unknown');
   const [tenantVendorNames, setTenantVendorNames] = useState<string[]>([]);
@@ -141,6 +143,7 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
   // Focus Mode / Requisition States
   const [isRequisitionCreated, setIsRequisitionCreated] = useState<boolean>(false);
   const [currentRequisitionInfo, setCurrentRequisitionInfo] = useState<{ id: string; name: string } | null>(null);
+  const [existingRequisitions, setExistingRequisitions] = useState<any[]>([]);
 
   // Cart Context & Snackbar
   const { cartItems, updateQuantity } = useCart();
@@ -265,10 +268,13 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
         if (tenantId) {
           try {
             const tenantDetails = await tenantService.getTenantDetails(tenantId);
-            const [tenantVendors, tenantCatalogs] = await Promise.all([
+            const [tenantVendors, tenantCatalogs, fetchedRequisitions] = await Promise.all([
               tenantService.getVendors(tenantId),
               tenantService.getCatalogs(tenantId),
+              tenantService.getRequisitions(tenantId).catch(() => []),
             ]);
+
+            setExistingRequisitions(fetchedRequisitions || []);
 
             if (!mounted) {
               return;
@@ -287,7 +293,8 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
             let nextProductId = 1;
             const tenantProducts = (tenantCatalogs || []).flatMap((catalog) => {
               const offerings = Array.isArray(catalog.offerings) ? catalog.offerings : [];
-              return offerings.map((offering) => ({
+              return offerings.map((offering) => {
+                const mappedOffering: any = {
                 id: nextProductId++,
                 catalogId: catalog.id,
                 offeringId: offering.id,
@@ -301,7 +308,6 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
                 image: `https://picsum.photos/seed/${offering.id}/200/200`,
                 productId: offering.productId,
                 productIdType: offering.productIdType,
-                ports: Array.isArray(offering.ports) ? offering.ports : [],
                 port: Array.isArray(offering.ports) && offering.ports.length > 0
                   ? offering.ports[0]
                   : undefined,
@@ -310,8 +316,23 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
                 variations: Array.isArray(offering.variations) ? offering.variations : [],
                 inventory: Array.isArray(offering.inventory) ? offering.inventory : [],
                 isVendorProduct: offering.isVendorProduct ?? Boolean(offering.vendorId),
-              }));
+              };
+
+              // Assign country from countryPortMap based on port, or default to a mock assignment
+              if (mappedOffering.port) {
+                const matched = countryPortMap.find(c => c.port === mappedOffering.port);
+                mappedOffering.country = matched ? matched.country : 'Unknown';
+              } else {
+                // If no port, fallback to mock index to avoid empty data
+                mappedOffering.country = countryPortMap[nextProductId % countryPortMap.length].country;
+                mappedOffering.port = countryPortMap[nextProductId % countryPortMap.length].port;
+                mappedOffering.ports = [mappedOffering.port];
+              }
+
+              return mappedOffering as CatalogProduct & { isVendorProduct: boolean };
             });
+            });
+
 
             let scopedProducts = tenantProducts;
             let notice = 'Showing tenant catalogue.';
@@ -361,10 +382,18 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
 
             setTenantCatalogueMode(mode);
             setTenantVendorNames(resolvedTenantVendorNames);
-            setProducts(scopedProducts);
+            setTenantProductsData(scopedProducts);
             setVendors(Array.from(new Set(scopedProducts.map((item) => item.vendorName))).filter(Boolean));
 
             setCatalogueNotice(notice);
+
+            // Also load global products so we can toggle
+            try {
+              const globalProds = await catalogService.getProducts();
+              setGlobalProductsData(globalProds);
+            } catch (e) {
+              console.error("Failed to load global products while in tenant mode", e);
+            }
 
             return;
           } catch (tenantLoadError) {
@@ -403,6 +432,7 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
         setTenantCatalogueMode('unknown');
         setTenantVendorNames([]);
         setProducts(productsData);
+        setGlobalProductsData(productsData);
         setVendors(vendorsData);
         setCatalogueNotice('Using default catalogue dataset.');
       } catch (error) {
@@ -446,40 +476,58 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
     { value: 'Archive', label: 'Archive' },
   ];
 
-  // Country and Port mocked options for special roles
+  // Country and Port options — always derived from the active visible dataset
+  const activeDataset = useMemo(() => {
+    if (isSpecialRole) {
+      return scope === 'Company' ? tenantProductsData : globalProductsData;
+    }
+    return products;
+  }, [isSpecialRole, scope, tenantProductsData, globalProductsData, products]);
+
   const countryOptions = useMemo(() => {
-    const countries = new Set(products.map(d => d.country).filter(Boolean));
+    const countries = new Set(activeDataset.map(d => d.country).filter(Boolean));
     return [{ value: 'All', label: 'All Countries' }, ...Array.from(countries).map(c => ({ value: c as string, label: c as string }))];
-  }, [products]);
+  }, [activeDataset]);
 
   const portOptions = useMemo(() => {
     const relevantData = selectedCountry !== 'All'
-      ? products.filter(d => d.country === selectedCountry)
-      : products;
+      ? activeDataset.filter(d => d.country === selectedCountry)
+      : activeDataset;
     const ports = new Set(relevantData.map(d => d.port).filter(Boolean));
     return [{ value: 'All', label: 'All Ports' }, ...Array.from(ports).map(p => ({ value: p as string, label: p as string }))];
-  }, [products, selectedCountry]);
+  }, [activeDataset, selectedCountry]);
 
   // Dynamic Columns
   const columns = useMemo(() => {
     if (isSpecialRole) {
-      return [
+      const specialCols: Column<CatalogProduct>[] = [
         {
           header: 'Product Name',
           accessorKey: 'productName',
           cell: (row) => (
             <div className="flex items-center gap-3">
               <Avatar src={row.image} alt={row.productName} size='sm' />
-              <span className="text-primary font-medium">{row.productName}</span>
+              <div className="flex flex-col">
+                <span className="text-primary font-medium">{row.productName}</span>
+                <div className="flex items-center gap-2 text-xs text-grey-500 mt-1">
+                   <span className="font-mono">{row.referenceCode}</span>
+                   {row.brand && (
+                     <>
+                       <span className="text-grey-300">•</span>
+                       <span className="font-medium text-grey-600">{row.brand}</span>
+                     </>
+                   )}
+                </div>
+              </div>
             </div>
           ),
         },
         {
-          header: 'Catalog ID',
-          accessorKey: 'catalogId',
+          header: 'Category',
+          accessorKey: 'category',
           cell: (row) => (
-            <Badge variant="soft" color="info" className="rounded-full px-3 font-mono text-xs">
-              {row.catalogId || 'N/A'}
+            <Badge variant="soft" color="info" className="rounded-full px-3">
+              {row.category || 'N/A'}
             </Badge>
           ),
         },
@@ -488,21 +536,46 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
           accessorKey: 'packingInfo',
           showInGrid: false,
         },
-        {
-          header: 'Reference Code',
-          accessorKey: 'referenceCode',
-          showInGrid: false,
-          cell: (row) => <span className="text-primary font-mono text-xs">{row.referenceCode}</span>,
+      ];
+
+      // Always show port-wise vendor availability
+      specialCols.push({
+        header: 'Port Vendors',
+        accessorKey: 'vendorName',
+        cell: (row) => {
+          // Count unique vendors serving this product's port from the whole dataset
+          const portForRow = row.port || selectedPort;
+          const portProducts = tenantProductsData.filter(p =>
+            portForRow && portForRow !== 'All' ? p.port === portForRow : true
+          );
+          const uniqueVendors = new Set(portProducts.map(p => p.vendorName).filter(Boolean));
+          const totalCount = uniqueVendors.size;
+          const vendorName = row.vendorName || 'Unknown';
+          const isContracted = tenantVendorNames.some(
+            n => n.toLowerCase() === vendorName.toLowerCase()
+          );
+          return (
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-grey-900 dark:text-white">{totalCount} {totalCount === 1 ? 'Vendor' : 'Vendors'}</span>
+                {portForRow && portForRow !== 'All' && (
+                  <span className="text-[10px] text-grey-400">in {portForRow}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                  isContracted ? 'bg-success/10 text-success' : 'bg-grey-100 dark:bg-grey-800 text-grey-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isContracted ? 'bg-success' : 'bg-grey-400'}`} />
+                  {isContracted ? 'Contracted' : 'Non-contracted'}
+                </span>
+              </div>
+            </div>
+          );
         },
-        {
-          header: 'Available Vendors',
-          accessorKey: 'vendorName',
-          cell: (row) => {
-            // Using a mock count generator based on id for demo consistency
-            const count = (row.id % 4) + 2;
-            return <span className="font-medium text-grey-900 dark:text-white">{count} Vendors</span>;
-          },
-        },
+      });
+
+      specialCols.push(
         {
           header: 'Status',
           cell: (row) => (
@@ -540,7 +613,9 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
             );
           }
         }
-      ] as Column<CatalogProduct>[];
+      );
+
+      return specialCols as Column<CatalogProduct>[];
     }
     const allBaseColumns = catalogService.getColumnsConfig();
 
@@ -593,20 +668,13 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
     tenantCatalogueMode,
   ]);
 
-  // Filter Data
+  // Filter Data — use activeDataset so scope switch is instantly reflected
   const filteredData = useMemo(() => {
-    let data = products;
+    let data = activeDataset;
 
     if (isSpecialRole) {
-      // Show only active or expiring products
-      data = data.filter((row) => row.status === 'Active' || row.isExpiring);
-      // Apply Country/Port filters
-      if (selectedCountry && selectedCountry !== 'All') {
-        data = data.filter((row) => row.country === selectedCountry);
-      }
-      if (selectedPort && selectedPort !== 'All') {
-        data = data.filter((row) => row.port === selectedPort);
-      }
+      // Show only active or expiring products (all from the dataset)
+      data = data.filter((row) => row.status === 'Active' || (row as any).isExpiring || !row.status);
     } else {
       if (selectedVendor && selectedVendor !== 'All') {
         data = data.filter((row) => row.vendorName === selectedVendor);
@@ -615,15 +683,23 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
         data = data.filter((row) => row.status === selectedStatus);
       }
     }
+
+    // Apply Country/Port filters globally for all users
+    if (selectedCountry && selectedCountry !== 'All') {
+      data = data.filter((row) => row.country === selectedCountry);
+    }
+    if (selectedPort && selectedPort !== 'All') {
+      data = data.filter((row) => row.port === selectedPort);
+    }
+
     return data;
   }, [
-    products,
+    activeDataset,
     isSpecialRole,
     selectedVendor,
     selectedStatus,
     selectedCountry,
     selectedPort,
-    tenantCatalogueMode,
   ]);
 
   // PageLayout Actions
@@ -651,7 +727,7 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
   );
 
   // GenericTablePage Filters Hook
-  const tableFilters = isSpecialRole ? (
+  const tableFilters = (
     <div className="flex items-center gap-2">
       <div className="w-32 hidden sm:block">
         <Combobox
@@ -674,29 +750,31 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
           size="small"
         />
       </div>
-    </div>
-  ) : (
-    <div className="flex items-center gap-2">
-      {tenantCatalogueMode !== 'smc-only' && (
-        <div className="w-40">
-          <Combobox
-            options={vendorOptions}
-            value={selectedVendor}
-            onChange={(val) => { setSelectedVendor(val as string); }}
-            placeholder="Select Vendor"
-            size="small"
-          />
-        </div>
+
+      {!isSpecialRole && (
+        <>
+          {tenantCatalogueMode !== 'smc-only' && (
+            <div className="w-40">
+              <Combobox
+                options={vendorOptions}
+                value={selectedVendor}
+                onChange={(val) => { setSelectedVendor(val as string); }}
+                placeholder="Select Vendor"
+                size="small"
+              />
+            </div>
+          )}
+          <div className="w-36 hidden sm:block">
+            <Combobox
+              options={statusOptions}
+              value={selectedStatus}
+              onChange={(val) => { setSelectedStatus(val as string); }}
+              placeholder="Status"
+              size="small"
+            />
+          </div>
+        </>
       )}
-      <div className="w-36 hidden sm:block">
-        <Combobox
-          options={statusOptions}
-          value={selectedStatus}
-          onChange={(val) => { setSelectedStatus(val as string); }}
-          placeholder="Status"
-          size="small"
-        />
-      </div>
     </div>
   );
 
@@ -718,15 +796,38 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
         <SlidersHorizontal size={14} />
         More filters
       </Button>
-      {isSpecialRole && isRequisitionCreated && currentRequisitionInfo && (
-        <div className="w-48 ml-2">
-          <Combobox
-            options={[{ value: currentRequisitionInfo.id, label: currentRequisitionInfo.name }]}
-            value={currentRequisitionInfo.id}
-            onChange={() => { }}
-            placeholder="Select Requisition"
-            size="small"
-          />
+      {isSpecialRole && (isRequisitionCreated || existingRequisitions.length > 0) && (
+        <div className="flex items-center gap-2 ml-2">
+          {isRequisitionCreated && currentRequisitionInfo ? (
+            <Badge variant="soft" color="warning" className="rounded-md h-8 text-xs font-medium">Draft</Badge>
+          ) : (
+            <Badge variant="soft" color="light" className="rounded-md h-8 text-xs font-medium">Active</Badge>
+          )}
+          <div className="w-48">
+            <Combobox
+              options={[
+                ...existingRequisitions.map(req => ({ value: req.id || req._id, label: req.requisitionName || req.orderNumber || 'Unknown Req' })),
+                ...(isRequisitionCreated && currentRequisitionInfo && !existingRequisitions.find(r => r.id === currentRequisitionInfo.id || r._id === currentRequisitionInfo.id)
+                  ? [{ value: currentRequisitionInfo.id, label: currentRequisitionInfo.name }] 
+                  : [])
+              ]}
+              value={currentRequisitionInfo?.id || ''}
+              onChange={(val) => { 
+                const selected = existingRequisitions.find(r => r.id === val || r._id === val);
+                if (selected) {
+                  setCurrentRequisitionInfo({ id: val as string, name: selected.requisitionName || selected.orderNumber || 'Requisition' });
+                  setIsRequisitionCreated(true);
+                } else if (currentRequisitionInfo && val === currentRequisitionInfo.id) {
+                  // Keep current if it's the newly created one
+                } else {
+                  setCurrentRequisitionInfo(null);
+                  setIsRequisitionCreated(false);
+                }
+              }}
+              placeholder="Select Requisition"
+              size="small"
+            />
+          </div>
         </div>
       )}
     </div>
@@ -787,13 +888,50 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
               });
             }
 
-            // Immediately display combobox
-            setIsRequisitionCreated(true);
-            setCurrentRequisitionInfo({
-              id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
-              name: data.requisitionName || 'New Requisition'
-            });
+            if (tenantId) {
+              try {
+                const reqResponse = await tenantService.createRequisition(tenantId, {
+                  requisitionName: data.requisitionName,
+                  categoryType: data.categoryType,
+                  priorityType: data.priorityType,
+                  country: data.country,
+                  port: data.port,
+                  creatorName: data.creatorName,
+                  creatorRank: data.creatorRank,
+                  crewMembers: data.crewMembers,
+                  freshDateRange: data.freshDateRange,
+                  dryDateRange: data.dryDateRange,
+                  deliveryMode: data.deliveryMode,
+                  agentName: data.agentName,
+                  agentEmail: data.agentEmail,
+                  agentPhone: data.agentPhone,
+                });
 
+                setIsRequisitionCreated(true);
+                setCurrentRequisitionInfo({
+                  id: reqResponse.id || reqResponse._id || 'REQ-' + Math.floor(1000 + Math.random() * 9000),
+                  name: data.requisitionName || 'New Requisition'
+                });
+              } catch (error) {
+                console.error("Failed to create requisition on backend", error);
+                // Fallback
+                setIsRequisitionCreated(true);
+                setCurrentRequisitionInfo({
+                  id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
+                  name: data.requisitionName || 'New Requisition'
+                });
+              }
+            } else {
+              // Immediately display combobox
+              setIsRequisitionCreated(true);
+              setCurrentRequisitionInfo({
+                id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
+                name: data.requisitionName || 'New Requisition'
+              });
+            }
+
+            // Don't auto-filter by port/country — that would blank the catalogue
+            // The user can manually select country/port after creating a requisition
             setIsRequisitionModalOpen(false);
           },
           closeAfter: false

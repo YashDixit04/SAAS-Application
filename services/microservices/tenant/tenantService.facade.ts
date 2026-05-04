@@ -5,6 +5,7 @@ import tenantCrudService, { TenantQuery } from './tenantCrud.service';
 import usersService from './users.service';
 import vendorsService from './vendors.service';
 import vesselsService from './vessels.service';
+import requisitionsService from './requisitions.service';
 import {
   ActivityLog,
   BulkCreateOfferingsPayload,
@@ -40,6 +41,7 @@ class TenantServiceFacade {
   readonly catalogs = catalogService;
   readonly activityLogs = activityLogsService;
   readonly documents = documentsService;
+  readonly requisitions = requisitionsService;
 
   async getTenants(query?: TenantQuery): Promise<PaginatedResponse<Tenant>> {
     return this.tenant.getTenants(query);
@@ -244,6 +246,27 @@ class TenantServiceFacade {
 
   async getVendorKycDocuments(tenantId: string): Promise<VendorKycDocument[]> {
     return this.documents.getVendorKycDocuments(tenantId);
+  }
+
+  // Requisitions
+  async getRequisitions(tenantId: string): Promise<any[]> {
+    return this.requisitions.getRequisitions(tenantId);
+  }
+
+  async getRequisitionById(tenantId: string, requisitionId: string): Promise<any> {
+    return this.requisitions.getRequisitionById(tenantId, requisitionId);
+  }
+
+  async createRequisition(tenantId: string, data: any): Promise<any> {
+    return this.requisitions.createRequisition(tenantId, data);
+  }
+
+  async updateRequisition(tenantId: string, requisitionId: string, data: any): Promise<any> {
+    return this.requisitions.updateRequisition(tenantId, requisitionId, data);
+  }
+
+  async deleteRequisition(tenantId: string, requisitionId: string): Promise<void> {
+    return this.requisitions.deleteRequisition(tenantId, requisitionId);
   }
 }
 

@@ -9,6 +9,7 @@ export { vendorsService } from './vendors.service';
 export { catalogService } from './catalog.service';
 export { activityLogsService } from './activityLogs.service';
 export { documentsService } from './documents.service';
+export { requisitionsService } from './requisitions.service';
 
 export { tenantService } from './tenantService.facade';
 export { default } from './tenantService.facade';
