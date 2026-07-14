@@ -163,22 +163,20 @@ const LoginSignup: React.FC<LoginSignupProps> = ({ onLoginSuccess, onRegisterVen
               <button
                 type="button"
                 onClick={() => handleAudienceSwitch('user')}
-                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                  loginAudience === 'user'
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${loginAudience === 'user'
                     ? 'bg-white text-black'
                     : 'text-white/80 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 Login as User
               </button>
               <button
                 type="button"
                 onClick={() => handleAudienceSwitch('vendor')}
-                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                  loginAudience === 'vendor'
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${loginAudience === 'vendor'
                     ? 'bg-white text-black'
                     : 'text-white/80 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 Login as Vendor
               </button>

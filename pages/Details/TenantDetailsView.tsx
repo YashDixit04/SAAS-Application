@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DetailsView from '@/components/common/DetailsView';
 import Button from '@/components/ui/Button';
-import { tenantDetailsData, tenantQuickLinks } from '@/data/tenantDetailsData';
+import { tenantDetailsData, getTenantQuickLinks } from '@/data/tenantDetailsData';
 
 const TenantDetailsView: React.FC<{ onNavigate?: (url: string) => void }> = ({ onNavigate }) => {
     const [isEditMode, setIsEditMode] = useState(false);
@@ -40,7 +40,7 @@ const TenantDetailsView: React.FC<{ onNavigate?: (url: string) => void }> = ({ o
             pageTitle={`${tenantDetailsData.type} Details`}
             pageSubtitle="Comprehensive overview of tenant information, subscription, and usage"
             isEditMode={isEditMode}
-            quickLinks={tenantQuickLinks}
+            quickLinks={getTenantQuickLinks(tenantDetailsData.advanced?.users?.userTypeSelection)}
             onQuickLinkClick={onNavigate}
         />
     );

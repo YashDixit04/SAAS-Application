@@ -76,11 +76,10 @@ const UserAccessPermissionsSection: React.FC<UserAccessPermissionsSectionProps> 
                     {pageOptions.map((page) => (
                         <label
                             key={page.id}
-                            className={`flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                                selectedPages.includes(page.id)
+                            className={`flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${selectedPages.includes(page.id)
                                     ? 'border-primary bg-primary/5 dark:bg-primary/10'
                                     : 'border-grey-200 dark:border-grey-800 bg-grey-50 dark:bg-grey-900 hover:border-primary/50'
-                            }`}
+                                }`}
                         >
                             <input
                                 type="checkbox"
@@ -115,11 +114,10 @@ const UserAccessPermissionsSection: React.FC<UserAccessPermissionsSectionProps> 
                                     return (
                                         <label
                                             key={field}
-                                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                                                isSelected
+                                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${isSelected
                                                     ? 'border-primary bg-primary/10 text-primary'
                                                     : 'border-grey-200 dark:border-grey-700 bg-white dark:bg-[#0A0A0D] text-grey-600 dark:text-grey-400 hover:border-primary/30'
-                                            }`}
+                                                }`}
                                         >
                                             <input
                                                 type="checkbox"

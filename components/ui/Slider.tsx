@@ -12,7 +12,7 @@ const Slider: React.FC<SliderProps> = ({
   value,
   className = '',
   disabled,
-  OnChange,
+  onChange,
   ...props
 }) => {
   // Calculate percentage for background gradient
@@ -26,7 +26,7 @@ const Slider: React.FC<SliderProps> = ({
         max={max}
         value={value}
         disabled={disabled}
-        onChange={OnChange || (() => {})}
+        onChange={onChange || (() => {})}
         {...props}
         className="
           w-full absolute z-10 opacity-0 cursor-pointer h-full

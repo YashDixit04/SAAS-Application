@@ -3,13 +3,13 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Switch from '../components/ui/Switch';
 import {
-    Heading2,
-    BodyBase,
-    Heading3,
-    Display2,
-    BodySm,
-    LabelSm,
-    Heading6
+  Heading2,
+  BodyBase,
+  Heading3,
+  Display2,
+  BodySm,
+  LabelSm,
+  Heading6
 } from '../components/ui/Typography';
 import { Check, Minus, Plus } from 'lucide-react';
 import { PricingPlan, pricingPlans } from '@/data/offeringdata';

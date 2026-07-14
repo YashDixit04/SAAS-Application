@@ -10,6 +10,7 @@ export { catalogService } from './catalog.service';
 export { activityLogsService } from './activityLogs.service';
 export { documentsService } from './documents.service';
 export { requisitionsService } from './requisitions.service';
+export { tenantSettingsService } from './tenantSettings.service';
 
 export { tenantService } from './tenantService.facade';
 export { default } from './tenantService.facade';
