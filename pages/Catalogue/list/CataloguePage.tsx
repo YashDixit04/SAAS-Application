@@ -203,7 +203,7 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
   const handleAddToCart = (productId: number, qty: number) => {
     const currentQty = cartItems[productId] || 0;
     updateQuantity(productId, qty);
-    
+
     // Auto-trigger correct snackbar response when successfully added
     if (qty > currentQty) {
       setIsSnackbarOpen(true);
@@ -295,42 +295,42 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
               const offerings = Array.isArray(catalog.offerings) ? catalog.offerings : [];
               return offerings.map((offering) => {
                 const mappedOffering: any = {
-                id: nextProductId++,
-                catalogId: catalog.id,
-                offeringId: offering.id,
-                productName: offering.name,
-                packingInfo: catalog.description || 'Standard Packing',
-                referenceCode: buildReferenceCode(catalog.name, offering.id),
-                vendorName: offering.vendor?.name || 'SMC Catalogue',
-                status: 'Active' as const,
-                category: catalog.name,
-                publishedOn: formatPublishedOn(offering.createdAt),
-                image: `https://picsum.photos/seed/${offering.id}/200/200`,
-                productId: offering.productId,
-                productIdType: offering.productIdType,
-                port: Array.isArray(offering.ports) && offering.ports.length > 0
-                  ? offering.ports[0]
-                  : undefined,
-                images: Array.isArray(offering.images) ? offering.images : [],
-                videos: Array.isArray(offering.videos) ? offering.videos : [],
-                variations: Array.isArray(offering.variations) ? offering.variations : [],
-                inventory: Array.isArray(offering.inventory) ? offering.inventory : [],
-                isVendorProduct: offering.isVendorProduct ?? Boolean(offering.vendorId),
-              };
+                  id: nextProductId++,
+                  catalogId: catalog.id,
+                  offeringId: offering.id,
+                  productName: offering.name,
+                  packingInfo: catalog.description || 'Standard Packing',
+                  referenceCode: buildReferenceCode(catalog.name, offering.id),
+                  vendorName: offering.vendor?.name || 'SMC Catalogue',
+                  status: 'Active' as const,
+                  category: catalog.name,
+                  publishedOn: formatPublishedOn(offering.createdAt),
+                  image: `https://picsum.photos/seed/${offering.id}/200/200`,
+                  productId: offering.productId,
+                  productIdType: offering.productIdType,
+                  port: Array.isArray(offering.ports) && offering.ports.length > 0
+                    ? offering.ports[0]
+                    : undefined,
+                  images: Array.isArray(offering.images) ? offering.images : [],
+                  videos: Array.isArray(offering.videos) ? offering.videos : [],
+                  variations: Array.isArray(offering.variations) ? offering.variations : [],
+                  inventory: Array.isArray(offering.inventory) ? offering.inventory : [],
+                  isVendorProduct: offering.isVendorProduct ?? Boolean(offering.vendorId),
+                };
 
-              // Assign country from countryPortMap based on port, or default to a mock assignment
-              if (mappedOffering.port) {
-                const matched = countryPortMap.find(c => c.port === mappedOffering.port);
-                mappedOffering.country = matched ? matched.country : 'Unknown';
-              } else {
-                // If no port, fallback to mock index to avoid empty data
-                mappedOffering.country = countryPortMap[nextProductId % countryPortMap.length].country;
-                mappedOffering.port = countryPortMap[nextProductId % countryPortMap.length].port;
-                mappedOffering.ports = [mappedOffering.port];
-              }
+                // Assign country from countryPortMap based on port, or default to a mock assignment
+                if (mappedOffering.port) {
+                  const matched = countryPortMap.find(c => c.port === mappedOffering.port);
+                  mappedOffering.country = matched ? matched.country : 'Unknown';
+                } else {
+                  // If no port, fallback to mock index to avoid empty data
+                  mappedOffering.country = countryPortMap[nextProductId % countryPortMap.length].country;
+                  mappedOffering.port = countryPortMap[nextProductId % countryPortMap.length].port;
+                  mappedOffering.ports = [mappedOffering.port];
+                }
 
-              return mappedOffering as CatalogProduct & { isVendorProduct: boolean };
-            });
+                return mappedOffering as CatalogProduct & { isVendorProduct: boolean };
+              });
             });
 
 
@@ -383,6 +383,8 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
             setTenantCatalogueMode(mode);
             setTenantVendorNames(resolvedTenantVendorNames);
             setTenantProductsData(scopedProducts);
+            // Also update `products` so non-specialRole consumers (activeDataset, filters) see the data
+            setProducts(scopedProducts);
             setVendors(Array.from(new Set(scopedProducts.map((item) => item.vendorName))).filter(Boolean));
 
             setCatalogueNotice(notice);
@@ -479,10 +481,16 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
   // Country and Port options — always derived from the active visible dataset
   const activeDataset = useMemo(() => {
     if (isSpecialRole) {
+      // Sub-users can toggle between Company (tenant) and Global scope
       return scope === 'Company' ? tenantProductsData : globalProductsData;
     }
+    if (tenantId) {
+      // Tenant admin users: always show tenant-scoped products
+      return tenantProductsData;
+    }
+    // Global / superadmin view
     return products;
-  }, [isSpecialRole, scope, tenantProductsData, globalProductsData, products]);
+  }, [isSpecialRole, tenantId, scope, tenantProductsData, globalProductsData, products]);
 
   const countryOptions = useMemo(() => {
     const countries = new Set(activeDataset.map(d => d.country).filter(Boolean));
@@ -510,13 +518,13 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
               <div className="flex flex-col">
                 <span className="text-primary font-medium">{row.productName}</span>
                 <div className="flex items-center gap-2 text-xs text-grey-500 mt-1">
-                   <span className="font-mono">{row.referenceCode}</span>
-                   {row.brand && (
-                     <>
-                       <span className="text-grey-300">•</span>
-                       <span className="font-medium text-grey-600">{row.brand}</span>
-                     </>
-                   )}
+                  <span className="font-mono">{row.referenceCode}</span>
+                  {row.brand && (
+                    <>
+                      <span className="text-grey-300">•</span>
+                      <span className="font-medium text-grey-600">{row.brand}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -563,9 +571,8 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                  isContracted ? 'bg-success/10 text-success' : 'bg-grey-100 dark:bg-grey-800 text-grey-500'
-                }`}>
+                <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${isContracted ? 'bg-success/10 text-success' : 'bg-grey-100 dark:bg-grey-800 text-grey-500'
+                  }`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${isContracted ? 'bg-success' : 'bg-grey-400'}`} />
                   {isContracted ? 'Contracted' : 'Non-contracted'}
                 </span>
@@ -808,11 +815,11 @@ const CataloguePage: React.FC<CataloguePageProps> = ({ onNavigate, tenantId: ten
               options={[
                 ...existingRequisitions.map(req => ({ value: req.id || req._id, label: req.requisitionName || req.orderNumber || 'Unknown Req' })),
                 ...(isRequisitionCreated && currentRequisitionInfo && !existingRequisitions.find(r => r.id === currentRequisitionInfo.id || r._id === currentRequisitionInfo.id)
-                  ? [{ value: currentRequisitionInfo.id, label: currentRequisitionInfo.name }] 
+                  ? [{ value: currentRequisitionInfo.id, label: currentRequisitionInfo.name }]
                   : [])
               ]}
               value={currentRequisitionInfo?.id || ''}
-              onChange={(val) => { 
+              onChange={(val) => {
                 const selected = existingRequisitions.find(r => r.id === val || r._id === val);
                 if (selected) {
                   setCurrentRequisitionInfo({ id: val as string, name: selected.requisitionName || selected.orderNumber || 'Requisition' });

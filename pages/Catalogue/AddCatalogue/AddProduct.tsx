@@ -18,6 +18,7 @@ import {
   exportAddProductTemplate,
   importProductsFromExcel,
 } from './services/addProductImportExport';
+import { resolveVendorTenantId } from './addProduct.utils';
 
 interface AddProductProps {
   onNavigate?: (tab: string) => void;
@@ -37,6 +38,7 @@ export default function AddProduct({ onNavigate, tenantId }: AddProductProps) {
     isContextLoading,
     contextMessage,
     vendorOptions,
+    externalVendors,
   } = useTenantCatalogueContext(resolvedTenantId);
 
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -46,6 +48,8 @@ export default function AddProduct({ onNavigate, tenantId }: AddProductProps) {
   const [productId, setProductId] = useState('');
   const [productIdType, setProductIdType] = useState('UPC');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
+  const [selectedSubcategoryProduct, setSelectedSubcategoryProduct] = useState('');
   const [title, setTitle] = useState('');
 
   const [isVendorProduct, setIsVendorProduct] = useState<boolean | null>(null);
@@ -433,7 +437,7 @@ export default function AddProduct({ onNavigate, tenantId }: AddProductProps) {
     const categoryLabel = categoryLabelMap.get(selectedCategory) || selectedCategory || 'General';
 
     if (requiresVendorSelection) {
-      return `${categoryLabel} - Vendor`;
+      return `${categoryLabel}`;
     }
 
     if (requiresPortSelection && selectedPort) {
@@ -548,10 +552,19 @@ export default function AddProduct({ onNavigate, tenantId }: AddProductProps) {
         setTenantCatalogs((prev) => [catalog, ...prev]);
       }
 
+      const resolvedSubcategory = selectedSubcategoryProduct
+        ? (selectedSubcategory ? `${selectedSubcategory} - ${selectedSubcategoryProduct}` : selectedSubcategoryProduct)
+        : selectedSubcategory || undefined;
+
+      const vendorTenantId = requiresVendorSelection && selectedVendor
+        ? resolveVendorTenantId(selectedVendor, externalVendors)
+        : undefined;
+
       await tenantService.createOffering(resolvedTenantId, catalog.id, {
         name: title.trim(),
         price: regularPrice,
         vendorId: requiresVendorSelection ? selectedVendor : undefined,
+        vendorTenantId,
         isVendorProduct: requiresVendorSelection,
         ports: selectedPort ? [selectedPort] : [],
         productId: productId.trim(),
@@ -560,6 +573,8 @@ export default function AddProduct({ onNavigate, tenantId }: AddProductProps) {
         videos: mediaVideos,
         variations: variationPayload,
         inventory: inventoryPayload,
+        category: selectedCategory || undefined,
+        subcategory: resolvedSubcategory,
       });
 
       setSubmitSuccess('Product published successfully.');
@@ -613,6 +628,10 @@ export default function AddProduct({ onNavigate, tenantId }: AddProductProps) {
     setProductIdType,
     selectedCategory,
     setSelectedCategory,
+    selectedSubcategory,
+    setSelectedSubcategory,
+    selectedSubcategoryProduct,
+    setSelectedSubcategoryProduct,
     title,
     setTitle,
 

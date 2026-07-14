@@ -27,13 +27,13 @@ interface TimelineItemProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const TimelineItem: React.FC<TimelineItemProps> = ({ children, className = '', ...props }) => {
   const { align } = React.useContext(TimelineContext);
-  
+
   // For center alignment, we use a grid or flex row that spans full width
-  const alignClass = align === 'center' 
-    ? 'flex-row min-h-[80px]' 
-    : align === 'right' 
-        ? 'flex-row-reverse' 
-        : 'flex-row'; // left
+  const alignClass = align === 'center'
+    ? 'flex-row min-h-[80px]'
+    : align === 'right'
+      ? 'flex-row-reverse'
+      : 'flex-row'; // left
 
   return (
     <div className={`flex group relative ${alignClass} ${className}`} {...props}>
@@ -67,7 +67,7 @@ interface TimelineContentProps {
 
 export const TimelineContent: React.FC<TimelineContentProps> = ({ children, className = '' }) => {
   const { align } = React.useContext(TimelineContext);
-  
+
   // Padding logic based on alignment
   let paddingClass = 'pl-4 pb-8';
   if (align === 'right') paddingClass = 'pr-4 pb-8 text-right';
@@ -87,12 +87,12 @@ interface TimelineOppositeContentProps {
 
 export const TimelineOppositeContent: React.FC<TimelineOppositeContentProps> = ({ children, className = '' }) => {
   const { align } = React.useContext(TimelineContext);
-  
+
   // If not center aligned, opposite content might imply a specific look or be hidden/inline
   // In MUI, OppositeContent is usually only used in 'alternate' or 'right' modes effectively.
   // For 'left' alignment, we might render it, but usually it's used for the 'Time' in center mode.
-  
-  if (align !== 'center') return null; 
+
+  if (align !== 'center') return null;
 
   return (
     <div className={`flex-1 px-6 pb-8 text-right text-sm text-grey-500 dark:text-grey-500 ${className}`}>
@@ -109,14 +109,14 @@ interface TimelineDotProps {
   className?: string;
 }
 
-export const TimelineDot: React.FC<TimelineDotProps> = ({ 
-  variant = 'simple', 
-  color = 'primary', 
+export const TimelineDot: React.FC<TimelineDotProps> = ({
+  variant = 'simple',
+  color = 'primary',
   size = 'medium',
-  children, 
-  className = '' 
+  children,
+  className = ''
 }) => {
-  
+
   const colorMap = {
     primary: {
       solid: 'bg-primary text-white border-transparent',
@@ -158,10 +158,10 @@ export const TimelineDot: React.FC<TimelineDotProps> = ({
 
   // Border logic
   const borderClass = variant === 'outline' ? 'border-[2px]' : 'border-0';
-  
+
   // If it's simple (just a dot), ensure it's rounded full and centered
   return (
-    <div 
+    <div
       className={`
         rounded-full flex items-center justify-center z-10 
         ${sizeClasses[size]} 

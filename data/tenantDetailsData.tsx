@@ -50,6 +50,7 @@ export interface TenantDetailsProfile {
       companySpecificCatalogueCount: number;
       productAvailability: string;
       specificPorts: string;
+      canViewOtherTenantVendors?: boolean;
     };
     billingIntegrationsSecurity: {
       billingDetails: string;
@@ -112,6 +113,7 @@ export const tenantDetailsData: TenantDetailsProfile = {
       companySpecificCatalogueCount: 3,
       productAvailability: "Specific Ports",
       specificPorts: "Singapore, Rotterdam",
+      canViewOtherTenantVendors: false,
     },
     billingIntegrationsSecurity: {
       billingDetails: "Static placeholder - Coming soon",

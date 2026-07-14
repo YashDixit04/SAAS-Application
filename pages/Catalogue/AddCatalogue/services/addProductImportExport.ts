@@ -336,7 +336,7 @@ export const importProductsFromExcel = async (
 
   const ensureCatalog = async (categoryLabel: string): Promise<TenantCatalog> => {
     const catalogName = importRequiresVendorSelection
-      ? `${categoryLabel} - Vendor`
+      ? `${categoryLabel}`
       : categoryLabel;
     const normalizedName = normalizeKey(catalogName);
     const existingCatalog = catalogByName.get(normalizedName);
@@ -528,9 +528,9 @@ export const importProductsFromExcel = async (
 
     const inventoryPayload =
       sku.length > 0
-      || barcode.length > 0
-      || quantity > 0
-      || (inventoryVariant.length > 0 && inventoryVariant !== 'N/A')
+        || barcode.length > 0
+        || quantity > 0
+        || (inventoryVariant.length > 0 && inventoryVariant !== 'N/A')
         ? [{
           variant: inventoryVariant,
           sku,
@@ -538,6 +538,12 @@ export const importProductsFromExcel = async (
           quantity,
         }]
         : [];
+
+    const subcatRaw = normalizeCellText(row['Select subcategory']);
+    const subcatProdRaw = normalizeCellText(row['Select subcategory product']);
+    const resolvedSubcategory = subcatProdRaw
+      ? (subcatRaw ? `${subcatRaw} - ${subcatProdRaw}` : subcatProdRaw)
+      : subcatRaw || undefined;
 
     const offeringPayload: CreateOfferingPayload = {
       name: productName,
@@ -551,7 +557,8 @@ export const importProductsFromExcel = async (
       videos: parseCsvCell(row['Videos']),
       variations: parseCsvCell(row['Variations']),
       inventory: inventoryPayload,
-      subcategory: normalizeCellText(row['Select subcategory']) || undefined,
+      category: categoryLabel || undefined,
+      subcategory: resolvedSubcategory,
       impaCode: normalizeCellText(row['IMPA code (6 digits)']) || undefined,
       mfrPartNumber: normalizeCellText(row['MFR part number']) || undefined,
       hsCode:

@@ -50,7 +50,7 @@ const getDepartmentLabel = (roleType: string): string => {
 };
 
 const ROLE_OPTIONS = [
-    { value: 'admin',     label: 'Admin' },
+    { value: 'admin', label: 'Admin' },
     { value: 'adminusers', label: 'Admin User' },
     { value: 'tenantadmin', label: 'Tenant Admin' },
 ];
@@ -112,11 +112,11 @@ const Users: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate })
         const parts = user.name.split(' ');
         setEditForm({
             firstName: parts[0] || '',
-            lastName:  parts.slice(1).join(' ') || '',
-            email:     user.email,
-            username:  user.username,
-            password:  '',   // blank = don't change
-            roleType:  user._rawRoleType,
+            lastName: parts.slice(1).join(' ') || '',
+            email: user.email,
+            username: user.username,
+            password: '',   // blank = don't change
+            roleType: user._rawRoleType,
         });
         setEditError('');
     };
@@ -128,11 +128,11 @@ const Users: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate })
         try {
             const payload: any = {
                 firstName: editForm.firstName,
-                lastName:  editForm.lastName,
-                email:     editForm.email,
-                username:  editForm.username,
-                roleType:  editForm.roleType,
-                role:      editForm.roleType === 'admin' ? 'ADMIN' : 'USER',
+                lastName: editForm.lastName,
+                email: editForm.email,
+                username: editForm.username,
+                roleType: editForm.roleType,
+                role: editForm.roleType === 'admin' ? 'ADMIN' : 'USER',
             };
             if (editForm.password.length >= 6) {
                 payload.password = editForm.password;
@@ -300,7 +300,7 @@ const Users: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate })
                             searchPredicate={searchPredicate}
                             filters={filters}
                             renderGrid={renderUserGrid}
-                            onRowClick={() => {}}
+                            onRowClick={() => { }}
                             createButtonLabel="Add User"
                             onCreateClick={() => onNavigate?.('addAccount')}
                         />

@@ -128,7 +128,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
       {/* Group 4 - Logout */}
       <div className="py-2">
-        <MenuItem icon={<LogOut size={18} />} label="Log out" onClick={handleLogout}  />
+        <MenuItem icon={<LogOut size={18} />} label="Log out" onClick={handleLogout} />
       </div>
     </div>
   );

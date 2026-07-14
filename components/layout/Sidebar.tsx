@@ -67,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       { id: 'tenantSubUsers', label: 'Sub Users', icon: <Users size={18} strokeWidth={1.5} /> },
       { id: 'tenantVendors', label: 'Vendors', icon: <UserCog size={18} strokeWidth={1.5} /> },
       { id: 'tenantVessels', label: 'Vessels', icon: <Ship size={18} strokeWidth={1.5} /> },
-      { id: 'tenantOrders', label: 'Orders', icon: <ShoppingCart size={18} strokeWidth={1.5} /> },
+      { id: 'tenantOrders', label: 'Requisitions', icon: <ShoppingCart size={18} strokeWidth={1.5} /> },
       { id: 'tenantCatalogue', label: 'Catalogue', icon: <BookOpen size={18} strokeWidth={1.5} /> },
       { id: 'tenantDocuments', label: 'Documents', icon: <FileText size={18} strokeWidth={1.5} /> },
       { id: 'tenantActivityLogs', label: 'Activity Logs', icon: <Activity size={18} strokeWidth={1.5} /> }
@@ -91,7 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const accessibleBottomActions = filterMenuByPermissions(bottomActions);
 
   return (
-    <aside className="hidden md:flex w-16 flex-col items-center py-8 sticky top-[56px] h-[calc(100vh-56px)] bg-grey-50 dark:bg-grey-50 z-20">
+    <aside className="hidden md:flex w-16 flex-col items-center py-2 sticky top-[56px] h-[calc(100vh-56px)] bg-grey-50 dark:bg-grey-50 z-20">
 
       {/* Main Navigation */}
       <div className="flex flex-col gap-2 w-full items-center">

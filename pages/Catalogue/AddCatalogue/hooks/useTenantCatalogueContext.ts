@@ -8,7 +8,7 @@ import {
 
 import tenantService from '@/services/tenantService';
 import { ApiException } from '@/lib/apiClient';
-import type { TenantCatalog, TenantVendor } from '@/services/microservices/tenant';
+import type { TenantCatalog, TenantVendor, ExternalVendor } from '@/services/microservices/tenant';
 
 import {
   DEFAULT_PORT_OPTIONS,
@@ -19,6 +19,9 @@ import {
 export interface VendorOption {
   value: string;
   label: string;
+  isExternal?: boolean;
+  vendorTenantId?: string;
+  isDisabled?: boolean;
 }
 
 interface UseTenantCatalogueContextResult {
@@ -30,6 +33,8 @@ interface UseTenantCatalogueContextResult {
   isContextLoading: boolean;
   contextMessage: string;
   vendorOptions: VendorOption[];
+  externalVendors: ExternalVendor[];
+  canViewOtherTenantVendors: boolean;
 }
 
 export const useTenantCatalogueContext = (
@@ -41,6 +46,8 @@ export const useTenantCatalogueContext = (
   const [portOptions, setPortOptions] = useState<string[]>(DEFAULT_PORT_OPTIONS);
   const [isContextLoading, setIsContextLoading] = useState<boolean>(true);
   const [contextMessage, setContextMessage] = useState<string>('');
+  const [externalVendors, setExternalVendors] = useState<ExternalVendor[]>([]);
+  const [canViewOtherTenantVendors, setCanViewOtherTenantVendors] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -57,10 +64,19 @@ export const useTenantCatalogueContext = (
 
       try {
         const tenantDetails = await tenantService.getTenantDetails(tenantId);
-        const [vendors, catalogs] = await Promise.all([
+        
+        const canViewOther = tenantDetails?.tenantInformation?.canViewOtherTenantVendors || tenantDetails?.canViewOtherTenantVendors || false;
+        
+        const promises: [Promise<TenantVendor[]>, Promise<TenantCatalog[]>, Promise<ExternalVendor[]>?] = [
           tenantService.getVendors(tenantId),
           tenantService.getCatalogs(tenantId),
-        ]);
+        ];
+
+        if (canViewOther) {
+          promises.push(tenantService.getCrossTenantVendors(tenantId));
+        }
+
+        const [vendors, catalogs, crossVendors] = await Promise.all(promises);
 
         if (!mounted) {
           return;
@@ -73,6 +89,8 @@ export const useTenantCatalogueContext = (
         setTenantCatalogueMode(mode);
         setTenantVendors(Array.isArray(vendors) ? vendors : []);
         setTenantCatalogs(Array.isArray(catalogs) ? catalogs : []);
+        setCanViewOtherTenantVendors(canViewOther);
+        setExternalVendors(Array.isArray(crossVendors) ? crossVendors : []);
 
         const discoveredPorts = Array.from(
           new Set(
@@ -108,13 +126,38 @@ export const useTenantCatalogueContext = (
   }, [tenantId]);
 
   const vendorOptions = useMemo(
-    () => tenantVendors
-      .map((vendor) => ({
-        value: vendor.id,
-        label: vendor.basicInfo.companyName?.trim() || vendor.basicInfo.legalName?.trim() || vendor.id,
-      }))
-      .filter((option) => option.label.length > 0),
-    [tenantVendors],
+    () => {
+      const ownOptions = tenantVendors
+        .map((vendor) => ({
+          value: vendor.id,
+          label: vendor.basicInfo.companyName?.trim() || vendor.basicInfo.legalName?.trim() || vendor.id,
+          isExternal: false,
+        }))
+        .filter((option) => option.label.length > 0);
+
+      if (!canViewOtherTenantVendors || externalVendors.length === 0) {
+        return ownOptions;
+      }
+
+      const externalOptions = externalVendors
+        .map((vendor) => ({
+          value: vendor.id,
+          label: `${vendor.basicInfo.companyName?.trim() || vendor.id} (External — Tenant: ${vendor.vendorTenantName})`,
+          isExternal: true,
+          vendorTenantId: vendor.vendorTenantId,
+        }))
+        .filter((option) => option.label.length > 0);
+
+      if (ownOptions.length > 0) {
+        return [
+          ...ownOptions,
+          { value: 'divider', label: '── External Vendors ──', isDisabled: true },
+          ...externalOptions,
+        ];
+      }
+      return externalOptions;
+    },
+    [tenantVendors, externalVendors, canViewOtherTenantVendors],
   );
 
   return {
@@ -126,5 +169,7 @@ export const useTenantCatalogueContext = (
     isContextLoading,
     contextMessage,
     vendorOptions,
+    externalVendors,
+    canViewOtherTenantVendors,
   };
 };

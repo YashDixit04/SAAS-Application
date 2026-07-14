@@ -122,6 +122,7 @@ const TenantDetailsView: React.FC<{ onNavigate?: (url: string) => void, tenantId
                             companySpecificCatalogueCount: data.catalogueSettings?.companySpecificCatalogueCount ?? 0,
                             productAvailability: data.catalogueSettings?.productAvailability || 'Specific Ports',
                             specificPorts: data.catalogueSettings?.specificPorts || '',
+                            canViewOtherTenantVendors: data.canViewOtherTenantVendors ?? false,
                         }
                     }
                 };
@@ -150,6 +151,46 @@ const TenantDetailsView: React.FC<{ onNavigate?: (url: string) => void, tenantId
         { label: 'Tenants', href: '#' },
         { label: 'Tenant Details', href: '#', active: true }
     ];
+
+    // Ensure canViewOtherTenantVendors is only available when userTypeSelection is "Both SMC and Vendor Users"
+    useEffect(() => {
+        if (!details) return;
+        
+        const userType = details.advanced?.users?.userTypeSelection;
+        const currentCanView = details.advanced?.catalogueAndProducts?.canViewOtherTenantVendors;
+        
+        if (userType === 'Both SMC and Vendor Users') {
+            // Make sure it exists if it should
+            if (currentCanView === undefined) {
+                setDetails(prev => ({
+                    ...prev,
+                    advanced: {
+                        ...prev.advanced,
+                        catalogueAndProducts: {
+                            ...prev.advanced?.catalogueAndProducts,
+                            canViewOtherTenantVendors: false
+                        }
+                    }
+                }));
+            }
+        } else {
+            // Remove it if it shouldn't be there
+            if (currentCanView !== undefined) {
+                setDetails(prev => {
+                    const newCatalogueAndProducts = { ...prev.advanced?.catalogueAndProducts };
+                    delete newCatalogueAndProducts.canViewOtherTenantVendors;
+                    
+                    return {
+                        ...prev,
+                        advanced: {
+                            ...prev.advanced,
+                            catalogueAndProducts: newCatalogueAndProducts
+                        }
+                    };
+                });
+            }
+        }
+    }, [details?.advanced?.users?.userTypeSelection]);
 
     const [isSaving, setIsSaving] = useState(false);
 
@@ -196,6 +237,7 @@ const TenantDetailsView: React.FC<{ onNavigate?: (url: string) => void, tenantId
                 companySpecificCatalogueCount: details.advanced.catalogueAndProducts?.companySpecificCatalogueCount,
                 productAvailability: normalizeOptionalText(details.advanced.catalogueAndProducts?.productAvailability),
                 specificPorts: normalizeOptionalText(details.advanced.catalogueAndProducts?.specificPorts),
+                canViewOtherTenantVendors: Boolean(details.advanced.catalogueAndProducts?.canViewOtherTenantVendors),
             };
 
             await tenantService.updateTenant(tenantId, payload);

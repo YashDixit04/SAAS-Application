@@ -6,6 +6,7 @@ import usersService from './users.service';
 import vendorsService from './vendors.service';
 import vesselsService from './vessels.service';
 import requisitionsService from './requisitions.service';
+import { tenantSettingsService } from './tenantSettings.service';
 import {
   ActivityLog,
   BulkCreateOfferingsPayload,
@@ -31,6 +32,8 @@ import {
   UpdateVendorPayload,
   UpdateVesselPayload,
   VendorKycDocument,
+  ExternalVendor,
+  TenantSettings,
 } from './types';
 
 class TenantServiceFacade {
@@ -42,6 +45,7 @@ class TenantServiceFacade {
   readonly activityLogs = activityLogsService;
   readonly documents = documentsService;
   readonly requisitions = requisitionsService;
+  readonly settings = tenantSettingsService;
 
   async getTenants(query?: TenantQuery): Promise<PaginatedResponse<Tenant>> {
     return this.tenant.getTenants(query);
@@ -65,6 +69,14 @@ class TenantServiceFacade {
 
   async deleteTenant(id: string): Promise<void> {
     return this.tenant.deleteTenant(id);
+  }
+
+  async getTenantSettings(tenantId: string): Promise<TenantSettings> {
+    return this.settings.getTenantSettings(tenantId);
+  }
+
+  async updateTenantSettings(tenantId: string, data: Partial<TenantSettings>): Promise<TenantSettings> {
+    return this.settings.updateTenantSettings(tenantId, data);
   }
 
   async getTenantUsers(tenantId: string): Promise<TenantUser[]> {
@@ -146,6 +158,10 @@ class TenantServiceFacade {
 
   async getVendors(tenantId: string): Promise<TenantVendor[]> {
     return this.vendors.getVendors(tenantId);
+  }
+
+  async getCrossTenantVendors(tenantId: string): Promise<ExternalVendor[]> {
+    return this.vendors.getCrossTenantVendors(tenantId);
   }
 
   async getVendorById(tenantId: string, vendorId: string): Promise<TenantVendor> {

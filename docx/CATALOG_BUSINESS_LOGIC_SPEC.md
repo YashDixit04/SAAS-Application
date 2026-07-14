@@ -682,56 +682,55 @@ export function PortCatalogView({ tenantId, companyCurrency }: PortCatalogViewPr
 
 | # | Task | File | Priority | Status |
 |---|---|---|---|---|
-| B1 | Fix category fallback from `'General'` | `catalog.repository.ts` L548 | **HIGH** | Pending |
-| B2 | Add `resolvedCurrency` to offerings response | `catalog.repository.ts` | MEDIUM | Pending |
-| B3 | Create `CurrencyExchangeService` | New service | FUTURE | Design only |
-| B4 | Add `GET /port-catalog` endpoint | `catalog.controller.ts` | FUTURE | Design only |
-| B5 | Create `exchange_rates` collection + index | Migration script | FUTURE | Design only |
-| B6 | One-time category migration for existing data | Migration script | MEDIUM | Pending |
-| B7 | Register `tenantCatalogue` & `tenantCatalogues` in `TenantScopedResourceType` | `tenant-collection.service.ts` | **HIGH** | ✅ Done |
+| B1 | Fix category fallback from `'General'` | `catalog.repository.ts` L548 | **HIGH** | ✅ Done |
+| B2 | Add `resolvedCurrency` to offerings response | `catalog.repository.ts` | MEDIUM | ✅ Done |
+| B3 | Decommission legacy `catalogueOffereing` and `tenant_catalogue` architecture | `catalog.repository.ts` | **CRITICAL** | ✅ Done |
+| B4 | Consolidate CRUD operations to use unified `tenant_catalogues` and `catalogueMappings` | `catalog.repository.ts` | **CRITICAL** | ✅ Done |
+| B5 | Create `CurrencyExchangeService` | New service | FUTURE | Design only |
+| B6 | Add `GET /port-catalog` endpoint | `catalog.controller.ts` | FUTURE | Design only |
+| B7 | Register `tenantCatalogues` & `catalogueMappings` in `TenantScopedResourceType` | `tenant-collection.service.ts` | **HIGH** | ✅ Done |
 
 ---
 
-### 12.3 Bug Fix Log
+### 12.3 Architecture Refactor Log
 
-#### B7 — TS2345: Missing `TenantScopedResourceType` entries (Fixed: April 2026)
+#### Decommissioning Legacy Catalog Collections (Completed: May 2026)
 
-**Error:**
-```
-catalog.repository.ts:655:101 - TS2345: Argument of type '"tenantCatalogue"' is not assignable to parameter of type 'TenantScopedResourceType'.
-catalog.repository.ts:753:80  - TS2345: Argument of type '"tenantCatalogues"' is not assignable to parameter of type 'TenantScopedResourceType'.
-catalog.repository.ts:770:7   - TS2345: Argument of type '"tenantCatalogue"' is not assignable to parameter of type 'TenantScopedResourceType'.
-catalog.repository.ts:820:9   - TS2345: Argument of type '"tenantCatalogues"' is not assignable to parameter of type 'TenantScopedResourceType'.
-```
+**Summary:**
+Successfully completed the full decommissioning of legacy `catalogueOffereing` and `tenant_catalogue` collections across the entire platform architecture.
 
-**Root Cause:** `catalog.repository.ts` used `'tenantCatalogue'` (per-offering entries collection) and `'tenantCatalogues'` (catalog metadata collection) as arguments to `TenantCollectionService.getCollection()`, `listTenantCollectionTargets()`, and `buildCollectionName()`. However, these two string literals were never added to the `TenantScopedResourceType` union or the `TENANT_SCOPED_COLLECTION_SPECS` map in `tenant-collection.service.ts`.
-
-**Fix Applied:** Added both types to `tenant-collection.service.ts`:
-
-```ts
-// TenantScopedResourceType union — added:
-| 'tenantCatalogues'   // catalog metadata collection per tenant
-| 'tenantCatalogue'    // per-offering tenant catalogue entries
-
-// TENANT_SCOPED_COLLECTION_SPECS — added specs:
-tenantCatalogues: { suffix: 'tenant_catalogues', indexes: [...] },
-tenantCatalogue:  { suffix: 'tenant_catalogue',  indexes: [...] },
-```
-
-**Indexes registered for `tenantCatalogues`:**
-- `id` (unique)
-- `tenantId`
-- `createdAt` (desc)
-
-**Indexes registered for `tenantCatalogue`:**
-- `id` (unique)
-- `offeringId`
-- `superadminProductId`
-- `catalogId`
-- `createdAt` (desc)
-
-**Result:** `tsc --noEmit` exits with **0 errors**.
+**Actions Taken:**
+1. **Schema Consolidation:** Transitioned all read/write paths in `CatalogRepository` to strictly rely on `tenant_catalogues` for category/metadata and `catalogueMappings` for tenant-scoped product entries.
+2. **Replication Logic:** Enabled automatic cross-tenant vendor replication logic via `targetVendorTenantId` handling, syncing catalog mappings effortlessly directly to target vendor database contexts.
+3. **Database Cleanup:** Executed cleanup script `scripts/drop-tenant-catalogue-collections.ts` across all tenant environments to fully clean up legacy storage overhead.
 
 ---
 
-*Document generated: April 2026 | AtoZ Technical Architecture Team*
+---
+
+## 13. Cross-Tenant Vendor Mapping
+
+### 13.1 Business Rules
+
+SMC tenants (who manage catalogues) can now optionally view and select vendors from other tenants when adding products, provided they have the `canViewOtherTenantVendors` setting enabled.
+
+- **Visibility**: When enabled, the "Add Product" flow displays a dropdown containing both own-tenant vendors and external-tenant vendors (separated by a divider).
+- **Ownership**: When a product is mapped to an external vendor, the product is published to the SMC's catalogue normally. It is ALSO synced into the target vendor's catalogue asynchronously.
+- **Deduplication**: The backend tracks cross-tenant syncs in `core_db.contracted_vendor_mappings` and prevents duplicate products from being synced to the external vendor. It matches based on `sourceCatalogProductId` or (legacy fallback) `productId`.
+
+### 13.2 Frontend Architecture
+
+- **`useTenantCatalogueContext.ts`**: Fetches own vendors, and if enabled, fetches external vendors via `getCrossTenantVendors(tenantId)`. Constructs a unified `vendorOptions` array with `isExternal` and `vendorTenantId` metadata.
+- **`AddProduct.tsx`**: Extracts `vendorTenantId` when an external vendor is selected and passes it in the `createOffering` payload.
+- **`tenantService.facade.ts` / `vendors.service.ts`**: Added `getCrossTenantVendors` to retrieve external vendors from the backend.
+- **`TenantDetailsViewPage.tsx`**: Superadmin can toggle `canViewOtherTenantVendors` in the advanced catalogue settings section.
+
+### 13.3 Backend Architecture
+
+- **`VendorService.listVendorsAcrossTenants`**: Retrieves vendors from other tenants (excluding the requesting tenant and `global.platform`) and returns them as `ExternalVendorDTO` instances.
+- **`CatalogService.createOffering`**: Intercepts cross-tenant mapping logic (when `vendorTenantId !== smcTenantId`), calls `syncProductToVendor` to mirror the product, and records the relationship in `ContractedVendorMappingRepository`.
+- **`CatalogService.syncProductToVendor`**: Idempotent synchronization method. Searches the vendor's catalog for an existing mapped product before inserting.
+
+---
+
+*Document updated: May 2026 | AtoZ Technical Architecture Team*

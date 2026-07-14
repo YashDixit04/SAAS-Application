@@ -14,17 +14,185 @@
   { "value": "vendor_005", "label": "Local Craft Sellers" }
 ],
   "categories": [
-    { "value": "electronics", "label": "Electronics" },
-    { "value": "clothing", "label": "Clothing & Apparel" },
-    { "value": "home", "label": "Home & Garden" },
-    { "value": "books", "label": "Books & Media" },
-    { "value": "sports", "label": "Sports & Outdoors" },
-    { "value": "toys", "label": "Toys & Games" },
-    { "value": "health", "label": "Health & Beauty" },
-    { "value": "automotive", "label": "Automotive" },
-    { "value": "food", "label": "Food & Beverages" },
-    { "value": "office", "label": "Office Supplies" }
+    { "value": "Marine Provisions", "label": "Marine Provisions" },
+    { "value": "Bond Store", "label": "Bond Store" },
+    { "value": "Marine Spares", "label": "Marine Spares" }
   ],
+  "categoryHierarchy": {
+    "Marine Provisions": {
+      "Food & Grocery": [
+        "Dry Food",
+        "Frozen Food",
+        "Chilled Food",
+        "Fresh Vegetables",
+        "Fresh Fruits",
+        "Dairy Products",
+        "Meat & Poultry",
+        "Seafood",
+        "Bakery Items",
+        "Rice & Grains",
+        "Pulses & Lentils",
+        "Spices & Seasonings",
+        "Cooking Oil",
+        "Sauces & Condiments",
+        "Snacks",
+        "Breakfast Items",
+        "Canned Food",
+        "Instant Food",
+        "Noodles & Pasta",
+        "Baby Food"
+      ],
+      "Beverages": [
+        "Drinking Water",
+        "Soft Drinks",
+        "Juices",
+        "Tea",
+        "Coffee",
+        "Energy Drinks",
+        "Milk Beverages"
+      ],
+      "Galley Consumables": [
+        "Disposable Plates & Cups",
+        "Aluminium Foil",
+        "Cling Wrap",
+        "Tissue Papers",
+        "Garbage Bags",
+        "Food Storage Containers"
+      ],
+      "Cabin & Crew Consumables": [
+        "Toiletries",
+        "Soap & Shampoo",
+        "Laundry Supplies",
+        "Cleaning Chemicals",
+        "Air Fresheners"
+      ],
+      "Hygiene & Sanitation": [
+        "Hand Wash",
+        "Sanitizers",
+        "Disinfectants",
+        "Pest Control Items"
+      ]
+    },
+    "Bond Store": {
+      "Tobacco Products": [
+        "Cigarettes",
+        "Cigars",
+        "Tobacco Packs",
+        "Lighters"
+      ],
+      "Alcoholic Beverages": [
+        "Whisky",
+        "Rum",
+        "Vodka",
+        "Gin",
+        "Beer",
+        "Wine",
+        "Brandy"
+      ],
+      "Soft Beverages": [
+        "Soft Drinks",
+        "Energy Drinks",
+        "Premium Juices"
+      ],
+      "Confectionery": [
+        "Chocolates",
+        "Candies",
+        "Chewing Gum",
+        "Biscuits"
+      ],
+      "Personal Care": [
+        "Perfumes",
+        "Deodorants",
+        "Shaving Kits",
+        "Toothpaste",
+        "Toothbrushes"
+      ],
+      "Crew Welfare Items": [
+        "Playing Cards",
+        "Small Electronics",
+        "Phone Recharge Cards",
+        "Stationery"
+      ]
+    },
+    "Marine Spares": {
+      "Engine Spares": [
+        "Main Engine Spares",
+        "Auxiliary Engine Spares",
+        "Turbocharger Parts",
+        "Fuel Injection Parts",
+        "Cylinder Liners",
+        "Pistons & Rings",
+        "Bearings"
+      ],
+      "Electrical Spares": [
+        "Motors",
+        "Switches",
+        "Circuit Breakers",
+        "Cables & Wires",
+        "Sensors",
+        "Lighting Equipment",
+        "Batteries"
+      ],
+      "Pump & Valve Spares": [
+        "Pumps",
+        "Valve Kits",
+        "Mechanical Seals",
+        "Gaskets",
+        "Impellers"
+      ],
+      "Deck Spares": [
+        "Mooring Equipment",
+        "Winch Parts",
+        "Anchor Equipment",
+        "Shackles",
+        "Wire Ropes"
+      ],
+      "Navigation & Communication": [
+        "Radar Parts",
+        "GPS Equipment",
+        "VHF/UHF Equipment",
+        "Navigation Lights"
+      ],
+      "Safety Equipment Spares": [
+        "Fire Fighting Equipment",
+        "Lifeboat Spares",
+        "Breathing Apparatus Parts",
+        "Emergency Lighting"
+      ],
+      "Hydraulic & Pneumatic": [
+        "Hydraulic Pumps",
+        "Hydraulic Hoses",
+        "Pneumatic Cylinders",
+        "Compressors"
+      ],
+      "HVAC & Refrigeration": [
+        "Compressors",
+        "Cooling Fans",
+        "Refrigerant Gas",
+        "Thermostats",
+        "Filters"
+      ],
+      "Workshop & Tools": [
+        "Hand Tools",
+        "Power Tools",
+        "Measuring Instruments",
+        "Welding Equipment"
+      ],
+      "Pipe & Fittings": [
+        "Pipes",
+        "Flanges",
+        "Couplings",
+        "Elbows",
+        "Clamps"
+      ],
+      "Lubrication & Filtration": [
+        "Oil Filters",
+        "Fuel Filters",
+        "Lubricants",
+        "Grease"
+      ]
+    }
+  },
   "variantOptions": [
     { "value": "Size", "label": "Size" },
     { "value": "Color", "label": "Color" },

@@ -105,7 +105,7 @@ const GenericModal: React.FC<{ config: ModalConfig }> = ({ config }) => {
     const currentFields = tabs[activeTabIdx].fields;
     const newErrors: Record<string, string> = {};
     let isValid = true;
-    
+
     currentFields.forEach(f => {
       if (f.required) {
         if (f.type !== 'daterange' && f.type !== 'custom') {
@@ -143,9 +143,9 @@ const GenericModal: React.FC<{ config: ModalConfig }> = ({ config }) => {
     } else {
       const backAction = actions.find(a => a.id === 'back' || a.color === 'grey') || actions[0];
       if (backAction) {
-          handleActionClick(backAction);
+        handleActionClick(backAction);
       } else {
-          onClose();
+        onClose();
       }
     }
   };

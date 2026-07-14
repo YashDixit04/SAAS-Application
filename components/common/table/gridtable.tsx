@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Badge, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
+import Badge from '@/components/ui/Badge';
 import Avatar from '@/components/ui/Avatar';
 import Checkbox from '@/components/ui/Checkbox';
 import Pagination from '@/components/ui/Pagination';

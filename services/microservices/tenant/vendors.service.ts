@@ -3,11 +3,16 @@ import {
   CreateVendorPayload,
   TenantVendor,
   UpdateVendorPayload,
+  ExternalVendor,
 } from './types';
 
 class VendorsService {
   async getVendors(tenantId: string): Promise<TenantVendor[]> {
     return apiClient.get<TenantVendor[]>(`/tenants/${tenantId}/vendors`);
+  }
+
+  async getCrossTenantVendors(tenantId: string): Promise<ExternalVendor[]> {
+    return apiClient.get<ExternalVendor[]>(`/tenants/${tenantId}/vendors/cross-tenant`);
   }
 
   async getVendorById(tenantId: string, vendorId: string): Promise<TenantVendor> {

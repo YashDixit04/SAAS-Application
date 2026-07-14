@@ -58,6 +58,10 @@ export interface AddProductZoneProps {
   setProductIdType: (value: string) => void;
   selectedCategory: string;
   setSelectedCategory: (value: string) => void;
+  selectedSubcategory: string;
+  setSelectedSubcategory: (value: string) => void;
+  selectedSubcategoryProduct: string;
+  setSelectedSubcategoryProduct: (value: string) => void;
   title: string;
   setTitle: (value: string) => void;
 
@@ -126,11 +130,21 @@ function VitalInfoZone({
   availablePortOptions,
   selectedCategory,
   setSelectedCategory,
+  selectedSubcategory,
+  setSelectedSubcategory,
+  selectedSubcategoryProduct,
+  setSelectedSubcategoryProduct,
   title,
   setTitle,
   customInputClass,
   customComboboxClass,
 }: AddProductZoneProps) {
+  const subcategoryMap = (productFormConfig.categoryHierarchy as Record<string, Record<string, string[]>>)[selectedCategory] || {};
+  const subcategoryOptions = Object.keys(subcategoryMap).map((key) => ({ value: key, label: key }));
+
+  const subcategoryProducts = selectedSubcategory ? subcategoryMap[selectedSubcategory] || [] : [];
+  const subcategoryProductOptions = subcategoryProducts.map((item) => ({ value: item, label: item }));
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-[2fr_1fr] gap-4">
@@ -223,14 +237,48 @@ function VitalInfoZone({
         )}
       </div>
 
-      <Combobox
-        placeholder="Select category"
-        value={selectedCategory}
-        onChange={(val) => setSelectedCategory(val as string)}
-        options={productFormConfig.categories}
-        size="medium"
-        className={customComboboxClass}
-      />
+      <div className="flex flex-col gap-3">
+        <Combobox
+          placeholder="Select category"
+          value={selectedCategory}
+          onChange={(val) => {
+            setSelectedCategory(val as string);
+            setSelectedSubcategory('');
+            setSelectedSubcategoryProduct('');
+          }}
+          options={productFormConfig.categories}
+          size="medium"
+          className={customComboboxClass}
+        />
+        {subcategoryOptions.length > 0 && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+            <Combobox
+              placeholder="Select subcategory"
+              value={selectedSubcategory}
+              onChange={(val) => {
+                setSelectedSubcategory(val as string);
+                setSelectedSubcategoryProduct('');
+              }}
+              options={subcategoryOptions}
+              size="medium"
+              className={customComboboxClass}
+            />
+          </div>
+        )}
+        {subcategoryProductOptions.length > 0 && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+            <Combobox
+              placeholder="Select subcategory product"
+              value={selectedSubcategoryProduct}
+              onChange={(val) => setSelectedSubcategoryProduct(val as string)}
+              options={subcategoryProductOptions}
+              size="medium"
+              className={customComboboxClass}
+            />
+          </div>
+        )}
+      </div>
+
       <Input
         placeholder="Title"
         size="medium"

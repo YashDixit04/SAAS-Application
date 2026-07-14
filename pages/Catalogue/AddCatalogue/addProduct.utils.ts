@@ -1,4 +1,5 @@
 import productFormConfig from '@/data/json/productFormConfig.json';
+import { ExternalVendor } from '@/services/microservices/tenant';
 
 export type TenantCatalogueMode = 'vendor-only' | 'both' | 'smc-only' | 'unknown';
 
@@ -51,6 +52,7 @@ export const buildAddProductTemplateHeaders = (): string[] => {
     'Product ID type',
     'Select category',
     'Select subcategory',
+    'Select subcategory product',
     'Title',
     'Brand',
     'Manufacturer',
@@ -121,3 +123,7 @@ export const parseNumberCell = (value: unknown, fallback = 0): number => {
 };
 
 export const normalizeKey = (value: string): string => value.trim().toLowerCase();
+
+export const resolveVendorTenantId = (vendorId: string, externalVendors: ExternalVendor[]): string | undefined => {
+  return externalVendors.find((v) => v.id === vendorId)?.vendorTenantId;
+};

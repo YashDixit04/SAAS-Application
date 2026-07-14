@@ -6,19 +6,19 @@ import Combobox from './Combobox';
 
 export default function DraggableListDisplay() {
   // State for each example type
-  const [basicItems, setBasicItems] = useState(
+  const [basicItems, setBasicItems] = useState<any[]>(
     draggableExamples.examples.find(ex => ex.id === 'basic')?.items || []
   );
 
-  const [variantItems, setVariantItems] = useState(
+  const [variantItems, setVariantItems] = useState<any[]>(
     draggableExamples.examples.find(ex => ex.id === 'variants')?.items || []
   );
 
-  const [taskItems, setTaskItems] = useState(
+  const [taskItems, setTaskItems] = useState<any[]>(
     draggableExamples.examples.find(ex => ex.id === 'tasks')?.items || []
   );
 
-  const [featureItems, setFeatureItems] = useState(
+  const [featureItems, setFeatureItems] = useState<any[]>(
     draggableExamples.examples.find(ex => ex.id === 'features')?.items || []
   );
 

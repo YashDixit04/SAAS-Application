@@ -61,7 +61,7 @@ function TenantTable<T extends { id: string | number }>({
             />
           </div>
           {filters ? filters : (
-            <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+            <Button variant="outline" size="small" iconOnly className="bg-grey-50 border-none text-grey-500">
               <Filter size={18} />
             </Button>
           )}
@@ -71,11 +71,11 @@ function TenantTable<T extends { id: string | number }>({
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           {renderGrid && <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />}
 
-          <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+          <Button variant="outline" size="small" iconOnly className="bg-grey-50 border-none text-grey-500">
             <Download size={18} />
           </Button>
 
-          <Button variant="outline" size="icon" className="bg-grey-50 border-none text-grey-500">
+          <Button variant="outline" size="small" iconOnly className="bg-grey-50 border-none text-grey-500">
             <ArrowUpDown size={18} />
           </Button>
 

@@ -37,7 +37,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
           </div>
 
           {/* Center: Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-lg px-8 lg:px-1">
+          <div className="tour-step-search hidden md:flex flex-1 max-w-lg px-8 lg:px-1">
             <Input
               placeholder="Search"
               leftIcon={<Search size={16} className="text-grey-500" />}
@@ -77,7 +77,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
             )}
 
             {/* Notifications */}
-            <div className="relative">
+            <div className="relative tour-step-notifications">
               <Button
                 variant="ghost"
                 color="dark"
@@ -91,7 +91,7 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode = false, toggleTheme = () =>
             </div>
 
             {/* Profile Dropdown Trigger */}
-            <div className="relative pl-2" ref={profileRef}>
+            <div className="relative pl-2 tour-step-profile" ref={profileRef}>
               <div onClick={() => setIsProfileOpen(!isProfileOpen)}>
                 <Avatar
                   src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=256&h=256&auto=format&fit=crop"

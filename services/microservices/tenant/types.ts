@@ -48,6 +48,7 @@ export interface Tenant {
   productAvailability?: string;
   specificPorts?: string;
   profilePhoto?: string;
+  canViewOtherTenantVendors?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +90,7 @@ export interface CreateTenantPayload {
   productAvailability?: string;
   specificPorts?: string;
   profilePhoto?: string;
+  canViewOtherTenantVendors?: boolean;
 }
 
 export type UpdateTenantPayload = Partial<CreateTenantPayload>;
@@ -425,6 +427,7 @@ export interface TenantOffering {
   videos?: string[];
   variations?: string[];
   inventory?: Array<Record<string, unknown>>;
+  category?: string;
   subcategory?: string;
   impaCode?: string;
   mfrPartNumber?: string;
@@ -448,6 +451,7 @@ export interface CreateOfferingPayload {
   name: string;
   price: number;
   vendorId?: string;
+  vendorTenantId?: string;
   isVendorProduct?: boolean;
   ports?: string[];
   productId?: string;
@@ -456,6 +460,7 @@ export interface CreateOfferingPayload {
   videos?: string[];
   variations?: string[];
   inventory?: Array<Record<string, unknown>>;
+  category?: string;
   subcategory?: string;
   impaCode?: string;
   mfrPartNumber?: string;
@@ -509,4 +514,14 @@ export interface VendorKycDocument {
   documentValue: string;
   kycStatus: string;
   uploadedAt: string;
+}
+
+export interface TenantSettings {
+  canViewOtherTenantVendors: boolean;
+}
+
+export interface ExternalVendor extends TenantVendor {
+  isExternal: true;
+  vendorTenantId: string;
+  vendorTenantName: string;
 }

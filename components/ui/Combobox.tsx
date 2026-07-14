@@ -129,25 +129,25 @@ const Combobox: React.FC<ComboboxProps> = ({
   let stateClasses = 'border-grey-200 dark:border-grey-800 text-grey-900 dark:text-white';
 
   if (isDisabled) {
-      stateClasses = 'bg-grey-50 border-grey-200 dark:border-grey-800 opacity-60 cursor-not-allowed text-grey-400 dark:text-grey-600';
+    stateClasses = 'bg-grey-50 border-grey-200 dark:border-grey-800 opacity-60 cursor-not-allowed text-grey-400 dark:text-grey-600';
   } else if (isError) {
-      stateClasses = 'border-danger text-danger';
+    stateClasses = 'border-danger text-danger';
   } else {
-      // Logic to mimic Input's focus-within via isOpen state or forceState
-      if (isOpen || forceState === 'focus') {
-          stateClasses += ' border-primary ring-2 ring-primary/20 dark:ring-primary/20';
-      } else if (forceState === 'hover') {
-          stateClasses += ' border-primary dark:border-primary';
-      } else {
-          stateClasses += ' hover:border-primary dark:hover:border-primary';
-      }
+    // Logic to mimic Input's focus-within via isOpen state or forceState
+    if (isOpen || forceState === 'focus') {
+      stateClasses += ' border-primary ring-2 ring-primary/20 dark:ring-primary/20';
+    } else if (forceState === 'hover') {
+      stateClasses += ' border-primary dark:border-primary';
+    } else {
+      stateClasses += ' hover:border-primary dark:hover:border-primary';
+    }
   }
 
   // Size Styles
   const sizeClasses = {
-      large: 'min-h-12 text-base px-3',
-      medium: 'min-h-10 text-sm px-3',
-      small: 'min-h-8 text-xs px-2',
+    large: 'min-h-12 text-base px-3',
+    medium: 'min-h-10 text-sm px-3',
+    small: 'min-h-8 text-xs px-2',
   };
 
   // Display Value Logic
@@ -155,8 +155,8 @@ const Combobox: React.FC<ComboboxProps> = ({
     if (!value || (Array.isArray(value) && value.length === 0)) return placeholder;
 
     if (multiple && Array.isArray(value)) {
-        const selectedLabels = value.map(v => options.find(o => o.value === v)?.label).filter(Boolean);
-        return selectedLabels.join(', ');
+      const selectedLabels = value.map(v => options.find(o => o.value === v)?.label).filter(Boolean);
+      return selectedLabels.join(', ');
     }
 
     const selectedOption = options.find(o => o.value === value);
@@ -188,42 +188,42 @@ const Combobox: React.FC<ComboboxProps> = ({
     >
       <div className="max-h-60 overflow-y-auto custom-scrollbar">
         {Object.entries(groupedOptions).map(([group, groupOptions]) => (
-           <React.Fragment key={group}>
-              {hasGroups && (
-                  <div className="px-2 py-1.5 text-xs font-semibold text-grey-500 uppercase tracking-wider">
-                      {group}
-                  </div>
-              )}
-              {(groupOptions as ComboboxOption[]).map((option) => {
-                  const isSelected = multiple
-                    ? Array.isArray(value) && value.includes(option.value)
-                    : value === option.value;
+          <React.Fragment key={group}>
+            {hasGroups && (
+              <div className="px-2 py-1.5 text-xs font-semibold text-grey-500 uppercase tracking-wider">
+                {group}
+              </div>
+            )}
+            {(groupOptions as ComboboxOption[]).map((option) => {
+              const isSelected = multiple
+                ? Array.isArray(value) && value.includes(option.value)
+                : value === option.value;
 
-                  return (
-                    <div
-                        key={option.value}
-                        onClick={() => handleSelect(option.value)}
-                        className={`
+              return (
+                <div
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={`
                             flex items-center justify-between px-2 py-2 rounded-md cursor-pointer text-sm transition-colors
                             ${isSelected
-                                ? 'bg-primary text-white'
-                                : 'text-grey-900 dark:text-white hover:bg-grey-50 dark:hover:bg-grey-800'
-                            }
+                      ? 'bg-primary text-white'
+                      : 'text-grey-900 dark:text-white hover:bg-grey-50 dark:hover:bg-grey-800'
+                    }
                         `}
-                    >
-                        <div className="flex items-center gap-2 truncate">
-                            {option.icon && (
-                                <span className={`${isSelected ? 'text-white' : 'text-grey-400 dark:text-grey-500'}`}>
-                                    {option.icon}
-                                </span>
-                            )}
-                            <span>{option.label}</span>
-                        </div>
-                        {isSelected && !multiple && <Check size={14} />}
-                    </div>
-                  );
-              })}
-           </React.Fragment>
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    {option.icon && (
+                      <span className={`${isSelected ? 'text-white' : 'text-grey-400 dark:text-grey-500'}`}>
+                        {option.icon}
+                      </span>
+                    )}
+                    <span>{option.label}</span>
+                  </div>
+                  {isSelected && !multiple && <Check size={14} />}
+                </div>
+              );
+            })}
+          </React.Fragment>
         ))}
       </div>
     </div>
@@ -243,12 +243,12 @@ const Combobox: React.FC<ComboboxProps> = ({
         )}
 
         <span className={`flex-1 truncate ${!value || (Array.isArray(value) && value.length === 0) ? 'text-grey-400 dark:text-grey-600' : ''}`}>
-           {getDisplayValue()}
+          {getDisplayValue()}
         </span>
 
         <ChevronDown
-            size={size === 'small' ? 14 : 16}
-            className={`
+          size={size === 'small' ? 14 : 16}
+          className={`
                 ml-2 transition-transform duration-200
                 ${isError ? 'text-danger' : 'text-grey-400 dark:text-grey-500'}
                 ${isOpen ? 'rotate-180' : ''}
